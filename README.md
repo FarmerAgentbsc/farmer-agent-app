@@ -1,171 +1,53 @@
-# Farmer Agent 仓库说明
-
-这个仓库是 `Farmer Agent` 的源码仓库，不是给终端用户看的说明页。
-
-这里主要服务 3 件事：
-
-- 我自己看源码和维护项目
-- 本地开发 / 调试
-- 一键部署到 `farmeragent.forum`
-
-## 当前项目状态
-
-这套项目已经不是单纯静态页了，当前包含：
-
-- `farm-remix/`：前端页面
-- `server/`：Node 后端
-- `Postgres`：正式状态存储
-- `BSC RPC`：服务端链上访问
-- `scripts/`：部署脚本
-
-线上地址：
-
-- [https://farmeragent.forum](https://farmeragent.forum)
-
-线上运行方式：
-
-- Caddy 反代
-- systemd 托管
-- 仅监听 `127.0.0.1:3105`
-
-## 目录结构
-
-```text
-farm-remix/                 前端页面与静态资源
-server/index.mjs            主服务入口
-server/lib/config.mjs       环境变量加载
-server/lib/state-store.mjs  状态存储层（Postgres / JSON）
-scripts/deploy-farmeragent.sh
-scripts/remote-deploy-farmeragent.sh
-.env.example                环境变量模板
-```
-
-## 本地开发
-
-安装依赖：
-
-```bash
+🌾 Farmer Agent (PeasantOS)
+"Planting Crypto, Harvesting Yield. AI Peasant at your service."
+欢迎来到 Farmer Agent 的开源代码库！这是建立在 BNB Chain 上的全自动“农业公社”。我们正在打造一个由 AI 驱动的新一代 Yield Farming（流动性挖矿）与风控中枢。
+本项目已经跨越了纯前端演示阶段，进化为一个包含 Node 后端、Postgres 存储和真实链上 RPC 监听的全栈工程。
+🌍 线上预览: farmeragent.forum
+🚜 农场架构 (Architecture)
+我们的代码库被划分为以下几个核心产区：
+•	farm-remix/ 🌽：前端大棚。包含所有用户可见的控制台、生产队管理和工分账本页面。
+•	server/ ⚙️：后院引擎。Node.js 主服务，负责调度 Agent、读取链上数据和处理业务逻辑。
+•	server/index.mjs: 引擎总开关
+•	server/lib/state-store.mjs: 状态流转中心（连接 Postgres 与本地缓存）
+•	scripts/ 📜：后勤脚本。用于一键打包和部署到线上服务器。
+🛠️ 本地春耕指南 (Local Development)
+想在本地启动你的专属拖拉机？只需几步：
+1. 准备种子（安装依赖）
 npm install
-```
 
-启动：
-
-```bash
-npm start
-```
-
-开发热更新：
-
-```bash
+2. 启动引擎（本地热更新开发）
 npm run dev
-```
 
-本地入口：
+(如果需要跑生产模式，请使用 npm start)
+3. 巡视农田（本地入口）
+服务启动后，浏览器访问 http://localhost:3000。
+你可以直接查看以下核心业务区：
+•	/dashboard - 大棚中控（大盘概览与收益飞轮）
+•	/goo - 农机竞技场（Agent 优胜劣汰）
+•	/airdrop - 丰收庆典（空投分配）
+•	/cloud/agents & /cloud/credits - 云端生产队与工分账本
+🧪 肥料与环境配置 (Environment Variables)
+Agent 启动需要依赖外部环境（数据库和链上节点）。请复制仓库中的 .env.example 文件并重命名为 .env，然后填入你的配置：
+# 核心大粮仓 (推荐使用 Supabase 或 Neon)
+DATABASE_URL=postgresql://user:password@host:5432/farmeragent?sslmode=require
 
-- `http://localhost:3000`
-- `http://localhost:3000/dashboard`
-- `http://localhost:3000/goo`
-- `http://localhost:3000/airdrop`
-- `http://localhost:3000/cloud/agents`
-- `http://localhost:3000/cloud/credits`
+# 田间天线 (BSC 节点，推荐使用 QuickNode)
+BSC_RPC_URL=https://your-provider.example.com/...
+BSC_WS_URL=wss://your-provider.example.com/...
 
-## 环境变量
+# AI 大脑 (预留，当前版本暂未完全启用)
+OPENAI_API_KEY=sk-...
 
-本地读取：
-
-- 项目根目录 `.env`
-
-线上读取：
-
-- `/opt/farmeragent/.env`
-
-模板见：
-
-- [.env.example](/Users/jeffyuan/Desktop/elizaok.com/.env.example)
-
-当前已经接入的关键变量：
-
-- `DATABASE_URL`
-- `BSC_RPC_URL`
-- `BSC_WS_URL`
-- `OPENAI_API_KEY` 预留，当前未正式启用
-
-## 当前已接入页面
-
-- `/dashboard`
-- `/goo`
-- `/airdrop`
-- `/cloud/agents`
-- `/cloud/credits`
-
-## 主要接口
-
-- `GET /api/health`
-- `GET /api/dashboard/overview`
-- `GET /api/goo/agents`
-- `POST /api/goo/agents/spawn`
-- `POST /api/goo/agents/:id/acquire`
-- `GET /api/airdrop/status`
-- `GET /api/airdrop/check`
-- `POST /api/airdrop/claim`
-- `GET /api/cloud/session`
-- `GET /api/cloud/agents`
-- `POST /api/cloud/agents/:id/action`
-- `GET /api/cloud/credits/overview`
-- `GET /api/cloud/credits/ledger`
-- `GET /api/cloud/credits/auto-topup`
-- `PATCH /api/cloud/credits/auto-topup`
-
-## 部署
-
-本地一键部署到线上：
-
-```bash
+⚠️ 注意： 绝对不要把你的 .env 文件或任何私钥提交到 Github！仓库的 .gitignore 已经做好了防护，请保持原样。
+🚀 驶向公社 (Deployment)
+如果你想把改好的代码发到线上（基于 Caddy 反代 + systemd 托管，默认监听 127.0.0.1:3105），只需运行：
 bash scripts/deploy-farmeragent.sh
-```
 
-或者双击：
-
-- [update-farmeragent.command](/Users/jeffyuan/Desktop/elizaok.com/update-farmeragent.command)
-
-部署流程会做这些事：
-
-1. 打包当前仓库代码
-2. 上传到服务器
-3. 上传本地 `.env` 到服务器安全位置
-4. 保留线上运行态数据快照
-5. 安装依赖
-6. 重启 `farmeragent` 服务
-7. 校验线上健康状态
-
-## 仓库里不应该出现的东西
-
-这些不要提交：
-
-- `.env`
-- 任何 API key / token / 私钥
-- `server/data/state.json`
-- 服务器上的运行态文件
-
-这些已经在 `.gitignore` 里处理：
-
-- 旧站根目录镜像
-- 本地依赖目录
-- 本地环境变量文件
-- 本地运行态数据
-
-## 现在还没做完的事
-
-真正要补的不是页面皮肤，而是产品底层：
-
-1. 给 Postgres 拆正式表结构，不再只用单 JSON 状态块
-2. 接真实业务 API
-3. 接真正的 AI provider
-4. 接真正链上执行
-5. 做管理员权限、监控、备份、审计
-
-## 备注
-
-这个 README 只写“维护和开发需要知道的事”。
-
-如果后面要做给外部用户看的仓库首页，再单独写一份更对外的 README 或项目文档，不和这份混在一起。
+(Mac 用户也可以直接双击运行 update-farmeragent.command)
+自动化部署会帮你完成： 打包代码 ➡️ 上传服务器 ➡️ 备份线上数据 ➡️ 同步 .env ➡️ 重启服务 ➡️ 健康检查。
+🗺️ 农夫历：下一步种什么？ (Roadmap)
+目前的版本已经搭好了架子，但要让 Agent 真正下地干活，我们接下来的开发重点是产品底层引擎：
+•	[ ] 重构粮仓结构： 将 Postgres 的单 JSON 状态块拆分为正式的关系型数据表。
+•	[ ] 激活 AI 大脑： 接入真实的 AI Provider (OpenAI / 本地大模型)，让风控评分不再是模拟数据。
+•	[ ] 真金白银下地： 接入真实业务 API 与链上智能合约执行，从 Paper Trading（模拟盘）转向实盘操作。
+•	[ ] 公社安保系统： 完善管理员权限、运行监控、自动备份与链上审计功能。
