@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Farmer's Almanac | Farmer Agent</title>
+<link rel="icon" type="image/png" href="../assets/farmer-agent-logo.png" />
+<link rel="apple-touch-icon" href="../assets/farmer-agent-logo.png" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--paper:#efe1bf;--paper2:#f7edd4;--ink:#4d3920;--ink2:#7a6447;--line:#c8b083;--accent:#8f5a2b;--accent2:#6c8b43}
+body{color:var(--ink);font-family:'Cormorant Garamond',serif;line-height:1.75;background:radial-gradient(circle at top left, rgba(143,90,43,.08), transparent 28%),radial-gradient(circle at bottom right, rgba(108,139,67,.08), transparent 28%),linear-gradient(180deg,var(--paper2),var(--paper));overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.doc-topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:rgba(247,237,212,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);gap:16px;flex-wrap:wrap}
+.doc-topbar__left{display:flex;align-items:center;gap:14px}.doc-avatar{width:52px;height:52px;border-radius:14px;overflow:hidden;border:2px solid rgba(143,90,43,.28);background:rgba(255,248,228,.96);padding:4px;box-shadow:0 4px 16px rgba(0,0,0,.08)}.doc-avatar img{width:100%;height:100%;object-fit:contain;display:block}
+.doc-topbar__title{font-size:28px;font-weight:700;letter-spacing:.02em}.doc-topbar__sub{font-size:14px;color:var(--ink2)}
+.doc-topbar__right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.doc-btn{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.32);font-size:14px;color:var(--ink2)}.doc-btn--active{background:rgba(143,90,43,.12);border-color:rgba(143,90,43,.45);color:var(--accent)}.doc-btn-sep{width:1px;height:22px;background:var(--line)}
+.doc-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px;max-width:1180px;margin:0 auto;padding:30px 22px 60px}.doc-toc{position:sticky;top:92px;align-self:start;background:rgba(255,255,255,.28);border:1px solid rgba(143,90,43,.18);border-radius:20px;padding:18px;box-shadow:0 10px 40px rgba(77,57,32,.08)}
+.doc-toc__label{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);margin-bottom:10px}.doc-toc a{display:block;padding:7px 0;color:var(--ink2);font-size:15px}.doc-toc a.active{color:var(--accent);font-weight:700}
+.doc-main section{margin-bottom:30px;scroll-margin-top:100px}.doc-main h2{font-size:34px;margin-bottom:12px;color:var(--accent)}
+.doc-content{background:rgba(255,255,255,.34);border:1px solid rgba(143,90,43,.18);border-radius:24px;padding:24px 26px;box-shadow:0 10px 34px rgba(77,57,32,.08)}
+.doc-content h3{font-size:24px;margin:18px 0 8px;color:var(--ink)}.doc-content p,.doc-content li,.doc-content td,.doc-content summary{font-size:19px}.doc-content ul{padding-left:20px}.doc-content li{margin:8px 0}
+.doc-table{width:100%;border-collapse:collapse;margin-top:8px}.doc-table td{border-top:1px dashed rgba(143,90,43,.25);padding:10px 8px;vertical-align:top}
+.doc-tag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.doc-tag{padding:14px 16px;border:1px solid rgba(143,90,43,.16);border-radius:16px;background:rgba(255,255,255,.24)}.doc-tag strong{display:block;color:var(--accent);font-size:18px;margin-bottom:4px}
+.doc-roadmap{display:flex;flex-direction:column;gap:12px}.doc-rm-item{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:18px;border:1px solid rgba(143,90,43,.16);background:rgba(255,255,255,.22)}.doc-rm-dot{width:12px;height:12px;border-radius:50%;margin-top:9px;background:var(--accent2);flex-shrink:0}.doc-rm-item strong{font-size:20px;color:var(--accent)}
+.doc-faq details{border-top:1px dashed rgba(143,90,43,.24);padding:12px 0}.doc-faq summary{cursor:pointer;font-weight:700;color:var(--accent)}.doc-footer{text-align:center;color:var(--ink2);font-size:15px;margin-top:12px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(77,57,32,.06);padding:2px 6px;border-radius:6px}
+@media(max-width:900px){.doc-layout{grid-template-columns:1fr}.doc-toc{position:static;top:auto}}
+@media(max-width:640px){.doc-topbar{padding:12px}.doc-topbar__title{font-size:22px}.doc-main h2{font-size:26px}.doc-content{padding:18px}.doc-content p,.doc-content li,.doc-content td,.doc-content summary{font-size:17px}.doc-tag-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="doc-topbar">
+  <div class="doc-topbar__left">
+    <div class="doc-avatar"><img src="../assets/farmer-agent-logo.png" alt="Farmer Agent" /></div>
+    <div>
+      <div class="doc-topbar__title">Farmer Agent</div>
+      <div class="doc-topbar__sub">Tractor-powered system · Farming on BSC Chain</div>
+    </div>
+  </div>
+  <div class="doc-topbar__right">
+    <a class="doc-btn" href="index.html">Farm Gate</a>
+    <a class="doc-btn" href="dashboard.html">The Barn</a>
+    <a class="doc-btn" href="goo.html">Farmhand Arena</a>
+    <div class="doc-btn-sep"></div>
+    <a class="doc-btn doc-btn--active" href="docs.html">EN</a>
+    <a class="doc-btn" href="../docs.html">中文</a>
+  </div>
+</div>
+<div class="doc-layout">
+  <nav class="doc-toc">
+    <div class="doc-toc__label">Field Index</div>
+    <a href="#intro">What It Is</a>
+    <a href="#features">Core Farm Loops</a>
+    <a href="#dashboard">The Barn</a>
+    <a href="#arena">Farmhand Arena</a>
+    <a href="#cloud">TractorCloud</a>
+    <a href="#tech">Tool Shed</a>
+    <a href="#roadmap">Farming Seasons</a>
+    <a href="#api">Field API</a>
+    <a href="#faq">Farmer FAQ</a>
+  </nav>
+  <main class="doc-main">
+    <section id="intro">
+      <h2>What It Is</h2>
+      <div class="doc-content">
+        <p>Farmer Agent is the ultimate yield harvester on BSC Chain. Instead of presenting DeFi as a cold trading terminal, it reframes the whole system as an automated farming co-op.</p>
+        <p>The machine scouts fresh fields, checks soil quality, plants capital, dispatches tractors, and routes the harvest back into the barn through a waterwheel of reinvestment, repairs, and village rations.</p>
+      </div>
+    </section>
+    <section id="features">
+      <h2>Core Farm Loops</h2>
+      <div class="doc-content">
+        <h3>Scouting Fields</h3>
+        <p>The old discovery engine is now the farm's APY radar. Every pass looks for fresh plots, overheated orchards, and odd corners of the market that could explode in yield.</p>
+        <h3>Soil Quality</h3>
+        <p>Risk scoring becomes a soil report. Fertility, worms, drainage, storm risk, and rug-pull rot are folded into a simple go-or-no-go planting signal.</p>
+        <h3>Planting and Staking</h3>
+        <p>Execution is reframed as sowing seed, staking fertilizer, and assigning tractors to each plot. Position sizing becomes seed allocation and risk caps become irrigation rules.</p>
+        <h3>The Waterwheel</h3>
+        <div class="doc-tag-grid">
+          <div class="doc-tag"><strong>70% Re-stake Seeds</strong>Fresh capital goes back into the fields.</div>
+          <div class="doc-tag"><strong>15% Repair Tractors</strong>Buybacks and burns become maintenance and upgrades.</div>
+          <div class="doc-tag"><strong>15% Villager Rations</strong>Airdrops become grain sacks for the village.</div>
+          <div class="doc-tag"><strong>Greenhouse Sandbox</strong>Paper trading becomes a protected test greenhouse.</div>
+        </div>
+      </div>
+    </section>
+    <section id="dashboard">
+      <h2>The Barn</h2>
+      <div class="doc-content">
+        <table class="doc-table">
+          <tr><td><strong>The Barn Log</strong></td><td>Live narration of scouting, soil checks, planting, weather risks, and machinery updates.</td></tr>
+          <tr><td><strong>Crop Explorer</strong></td><td>The old token grid becomes a crop book full of scallion, potato, and bean-field LPs.</td></tr>
+          <tr><td><strong>Silo</strong></td><td>Portfolio holdings are displayed as sacks, plots, and harvested rows.</td></tr>
+          <tr><td><strong>Greenhouse Sandbox</strong></td><td>All dry-run capital is treated like crops growing inside a protected greenhouse.</td></tr>
+          <tr><td><strong>Weather Forecast</strong></td><td>Signals show up as storms, frost alerts, irrigation boosts, and retreat warnings.</td></tr>
+          <tr><td><strong>Harvest Festival</strong></td><td>The airdrop flow turns into a village feast with parade lists and ration ledgers.</td></tr>
+        </table>
+      </div>
+    </section>
+    <section id="arena">
+      <h2>Farmhand Arena</h2>
+      <div class="doc-content">
+        <p>Eight distinct workers compete in the arena: tractors, sprinklers, seeders, and harvest rigs. Underperformers are composted. The strongest farmhands feed their instincts back into the core machine as upgrades.</p>
+        <ul>
+          <li><strong>Farming</strong>: stable and actively producing yield.</li>
+          <li><strong>Drought</strong>: returns are fading and the plot is drying up.</li>
+          <li><strong>Wilting</strong>: barely hanging on and likely to be retired.</li>
+          <li><strong>Composted</strong>: fully absorbed as nutrients for the main system.</li>
+        </ul>
+        <p>The compare page, Market Brawl, pits sickles, harvesters, and irrigation rigs against each other on APY, IL, fuel burn, and daily crop output.</p>
+      </div>
+    </section>
+    <section id="cloud">
+      <h2>TractorCloud</h2>
+      <div class="doc-content">
+        <p>TractorCloud is Farmer Agent's cloud commune. It is where you inspect which workers are active, how many work points remain, and whether the machinery needs repairs.</p>
+        <ul>
+          <li>Cloud agent roster</li>
+          <li>Work-point and grain-ticket ledger</li>
+          <li>Future hook for real commune accounts and machine logs</li>
+        </ul>
+      </div>
+    </section>
+    <section id="tech">
+      <h2>Tool Shed</h2>
+      <div class="doc-content">
+        <ul>
+          <li><strong>Runtime</strong>: Bun + TypeScript + elizaOS 2.0</li>
+          <li><strong>Field Data</strong>: GeckoTerminal API and on-chain pool telemetry</li>
+          <li><strong>Chain</strong>: the narrative is now fully grounded on BSC Chain</li>
+          <li><strong>Modes</strong>: greenhouse simulation, live farming, and harvest distribution</li>
+          <li><strong>Storage</strong>: local JSON plus in-memory cache</li>
+        </ul>
+      </div>
+    </section>
+    <section id="roadmap">
+      <h2>Farming Seasons</h2>
+      <div class="doc-content">
+        <div class="doc-roadmap">
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>Spring Plowing</strong><br>Establish the farm gate, the barn, and the full brand narrative.</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>Summer Cultivation</strong><br>Deepen field scouting, soil grading, and greenhouse simulation.</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>High Summer Upgrades</strong><br>Turn the arena and compost loop into a core mechanic.</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>Autumn Equinox</strong><br>Ship the full harvest festival and waterwheel payout loop.</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>First Frost</strong><br>Expand to neighboring chains as new counties and fields.</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>Winter Solstice</strong><br>Recast governance as a seasonal village council.</div></div>
+        </div>
+      </div>
+    </section>
+    <section id="api">
+      <h2>Field API</h2>
+      <div class="doc-content">
+        <table class="doc-table">
+          <tr><td><code>GET /api/elizaok/candidates</code></td><td>Field candidates with soil scoring</td></tr>
+          <tr><td><code>GET /api/goo/agents</code></td><td>Farmhand and machinery status</td></tr>
+          <tr><td><code>GET /api/notifications</code></td><td>Weather alerts and barn activity</td></tr>
+          <tr><td><code>GET /api/absorption/status</code></td><td>Tractor upgrade status</td></tr>
+          <tr><td><code>POST /api/goo/agents/:id/acquire</code></td><td>Absorb the strongest farmhand into the core rig</td></tr>
+        </table>
+      </div>
+    </section>
+    <section id="faq">
+      <h2>Farmer FAQ</h2>
+      <div class="doc-content">
+        <div class="doc-faq">
+          <details><summary>Is this still a trading product?</summary><p>Yes. Under the surface it still scouts pools, sizes positions, and evolves AI strategies. Only the narrative layer has been remapped into farming language.</p></details>
+          <details><summary>Why keep the greenhouse metaphor?</summary><p>Because it is a cleaner replacement for paper trading. You test crops in a greenhouse first, then decide whether they deserve real land.</p></details>
+          <details><summary>Will TractorCloud become a real product surface?</summary><p>Yes. Once the APIs are wired in, the current cloud pages can graduate from presentation screens into a real control console.</p></details>
+        </div>
+      </div>
+    </section>
+    <div class="doc-footer">Printed by the village co-op</div>
+  </main>
+</div>
+<script>
+var links=document.querySelectorAll('.doc-toc a');
+var sections=document.querySelectorAll('section');
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){
+      var idx=Array.from(sections).indexOf(entry.target);
+      links.forEach(function(link){link.classList.remove('active');});
+      if(links[idx]) links[idx].classList.add('active');
+    }
+  });
+},{rootMargin:'-20% 0px -60% 0px'});
+sections.forEach(function(section){observer.observe(section);});
+</script>
+</body>
+</html>

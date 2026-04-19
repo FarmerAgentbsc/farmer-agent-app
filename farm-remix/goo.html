@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>农机竞技场 | 农民 Agent</title>
+<link rel="icon" type="image/png" href="assets/farmer-agent-logo.png" />
+<link rel="apple-touch-icon" href="assets/farmer-agent-logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --goo-brand:#00C7D2;--goo-brand-bg:#e6fafb;
+  --goo-warn:#ca8a04;--goo-warn-bg:#fef9c3;
+  --goo-dying:#ea580c;--goo-dying-bg:#ffedd5;
+  --goo-dead:#D1D5DB;--goo-dead-bg:#F9FAFB;
+  --goo-pos:#10b981;--goo-neg:#ef4444;
+  --goo-bg:#f8f8f7;--goo-surface:#fff;--goo-border:#ebebeb;
+  --goo-text:#000;--goo-text2:#4D4D4D;--goo-text3:#808080;
+  --goo-r:16px;--goo-r-sm:8px;
+  font-family:'Inter',system-ui,sans-serif;
+}
+html,body{min-height:100%;background:var(--goo-bg);color:var(--goo-text);-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;}
+html{scrollbar-width:none;}html::-webkit-scrollbar{display:none;}
+[data-theme="dark"]{
+  --goo-brand:#00C7D2;--goo-brand-bg:rgba(0,199,210,.12);
+  --goo-warn:#eab308;--goo-warn-bg:rgba(234,179,8,.1);
+  --goo-dying:#ea580c;--goo-dying-bg:rgba(234,88,12,.1);
+  --goo-dead:#6b7280;--goo-dead-bg:rgba(107,114,128,.12);
+  --goo-pos:#34d399;--goo-neg:#f87171;
+  --goo-bg:#0a0a0a;--goo-surface:rgba(22,22,20,.95);--goo-border:rgba(255,255,255,.08);
+  --goo-text:#e5e5e5;--goo-text2:#a3a3a3;--goo-text3:#737373;
+}
+[data-theme="dark"] .goo-badge--strategy{background:rgba(99,102,241,.15);color:#a5b4fc;}
+[data-theme="dark"] .goo-badge--acquired{background:rgba(34,197,94,.12);color:#86efac;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,199,210,.3);}50%{box-shadow:0 0 0 6px rgba(0,199,210,0);}}
+@keyframes badgeGlow{0%,100%{box-shadow:0 0 4px rgba(0,199,210,.15);}50%{box-shadow:0 0 10px rgba(0,199,210,.3);}}
+
+.goo-wrap{max-width:1100px;margin:0 auto;padding:32px 24px 64px;animation:fadeIn .5s ease-out;}
+.goo-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+.goo-topbar__left{display:flex;align-items:center;gap:14px;}
+.goo-topbar__logo{font-size:20px;font-weight:700;color:var(--goo-brand);letter-spacing:.02em;text-decoration:none;display:flex;align-items:center;gap:10px;}
+.goo-topbar__logo img{width:34px;height:34px;border-radius:10px;border:2px solid rgba(0,199,210,.3);background:#f5f0d4;padding:3px;object-fit:contain;}
+.goo-topbar__sub{font-size:12px;color:var(--goo-text3);font-weight:400;}
+.goo-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.goo-nav a{color:var(--goo-text3);font-size:12px;font-weight:500;text-decoration:none;padding:6px 14px;border:1px solid var(--goo-border);border-radius:var(--goo-r-sm);transition:all .2s;}
+.goo-nav a:hover{color:var(--goo-brand);border-color:var(--goo-brand);}
+.goo-nav a.active{color:var(--goo-brand);border-color:var(--goo-brand);background:var(--goo-brand-bg);}
+
+/* Stats */
+.goo-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--goo-border);border-radius:var(--goo-r);overflow:hidden;margin-bottom:20px;background:var(--goo-surface);animation:slideUp .4s ease-out .1s both;}
+.goo-stat{padding:18px 14px;text-align:center;border-right:1px solid var(--goo-border);transition:background .2s;}
+.goo-stat:last-child{border-right:none;}
+.goo-stat:hover{background:rgba(0,199,210,.03);}
+.goo-stat__label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--goo-text3);margin-bottom:6px;}
+.goo-stat__value{font-size:22px;font-weight:700;line-height:1;transition:transform .2s;}
+.goo-stat:hover .goo-stat__value{transform:scale(1.05);}
+.goo-stat__value--brand{color:var(--goo-brand);}
+
+/* P&L */
+.goo-pnl--pos{color:var(--goo-pos);}
+.goo-pnl--neg{color:var(--goo-neg);}
+
+/* Badges */
+.goo-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;}
+.goo-badge--active{background:var(--goo-brand-bg);color:var(--goo-brand);animation:badgeGlow 2s ease-in-out infinite;}
+.goo-badge--starving{background:var(--goo-warn-bg);color:var(--goo-warn);}
+.goo-badge--dying{background:var(--goo-dying-bg);color:var(--goo-dying);}
+.goo-badge--dead{background:var(--goo-dead-bg);color:var(--goo-dead);}
+.goo-badge--strategy{background:#eef2ff;color:#4338ca;font-size:9px;}
+.goo-badge--acquired{background:#dcfce7;color:#16a34a;font-size:9px;}
+
+/* Agent list */
+.goo-card{background:var(--goo-surface);border:1px solid var(--goo-border);border-radius:var(--goo-r);overflow:hidden;margin-bottom:16px;animation:slideUp .4s ease-out .2s both;}
+.goo-card__head{padding:14px 20px;border-bottom:1px solid var(--goo-border);display:flex;align-items:center;justify-content:space-between;}
+.goo-card__head h2{font-size:14px;font-weight:700;color:var(--goo-text);}
+.goo-card__head-count{font-size:12px;color:var(--goo-text3);}
+
+.goo-agent-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--goo-border);transition:all .4s ease;cursor:pointer;animation:slideUp .3s ease-out both;}
+.goo-rank-badge{font-size:10px;font-weight:700;color:var(--goo-text3);min-width:26px;text-align:center;opacity:.6;transition:color .3s;}
+.goo-agent-row:first-child .goo-rank-badge{color:var(--goo-brand);opacity:1;}
+.goo-agent-row:last-child{border-bottom:none;}
+.goo-agent-row:hover{background:rgba(0,199,210,.02);}
+
+.goo-agent-row__dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.goo-dot--active{background:var(--goo-brand);animation:dotPulse 2s ease-in-out infinite;}
+.goo-dot--starving{background:var(--goo-warn);}
+.goo-dot--dying{background:var(--goo-dying);}
+.goo-dot--dead{background:var(--goo-dead);}
+
+.goo-agent-row__main{flex:1;min-width:0;}
+.goo-agent-row__title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+.goo-agent-row__symbol{font-size:14px;font-weight:700;color:var(--goo-brand);}
+.goo-agent-row__name{font-size:13px;font-weight:600;color:var(--goo-text);}
+.goo-agent-row__meta{font-size:11px;color:var(--goo-text3);display:flex;gap:4px;flex-wrap:wrap;}
+.goo-sep{opacity:.4;}
+
+.goo-agent-row__metrics{text-align:right;flex-shrink:0;min-width:100px;}
+.goo-agent-row__pnl{font-size:15px;font-weight:700;}
+.goo-agent-row__score{font-size:10px;color:var(--goo-text3);margin-top:2px;}
+
+.goo-agent-row__actions{flex-shrink:0;min-width:100px;text-align:right;}
+
+/* Buttons */
+.goo-btn{display:inline-flex;align-items:center;height:30px;padding:0 14px;border:1px solid var(--goo-border);border-radius:var(--goo-r-sm);background:transparent;color:var(--goo-text3);font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.03em;cursor:pointer;transition:all .2s;}
+.goo-btn:hover{border-color:var(--goo-brand);color:var(--goo-brand);}
+.goo-btn--acquire{border-color:var(--goo-brand);color:var(--goo-brand);background:var(--goo-brand-bg);}
+.goo-btn--acquire:hover{background:var(--goo-brand);color:#fff;box-shadow:0 0 14px rgba(0,199,210,.3);}
+.goo-btn--spawn{border-color:var(--goo-brand);color:#fff;background:var(--goo-brand);font-size:12px;height:34px;padding:0 18px;border-radius:var(--goo-r-sm);}
+.goo-btn--spawn:hover{box-shadow:0 0 16px rgba(0,199,210,.35);transform:translateY(-1px);}
+.goo-acquired-label{font-size:11px;color:var(--goo-pos);font-weight:600;}
+
+/* Filter */
+.goo-filters{display:flex;gap:6px;padding:12px 20px;border-bottom:1px solid var(--goo-border);flex-wrap:wrap;}
+.goo-filter{font-size:11px;padding:4px 12px;border:1px solid var(--goo-border);border-radius:20px;color:var(--goo-text3);cursor:pointer;transition:all .2s;background:transparent;font-family:inherit;}
+.goo-filter:hover,.goo-filter.active{border-color:var(--goo-brand);color:var(--goo-brand);background:rgba(0,199,210,.05);}
+
+.goo-footer{text-align:center;font-size:11px;color:var(--goo-text3);margin-top:32px;}
+.goo-footer a{color:var(--goo-brand);text-decoration:none;}
+.goo-footer a:hover{text-decoration:underline;}
+
+/* Flywheel */
+.goo-flywheel{background:var(--goo-surface);border:1px solid var(--goo-border);border-radius:var(--goo-r);overflow:hidden;margin-bottom:16px;padding:20px;}
+.goo-flywheel__head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.goo-flywheel__icon{font-size:24px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(0,199,210,.12),rgba(139,92,246,.12));border-radius:12px;animation:spin 6s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.goo-flywheel__title{font-size:14px;font-weight:700;color:var(--goo-text);}
+.goo-flywheel__sub{font-size:11px;color:var(--goo-text3);margin-top:2px;}
+.goo-flywheel__grid{display:flex;align-items:center;gap:0;justify-content:center;}
+.goo-flywheel__cell{text-align:center;flex:1;padding:12px 8px;border-radius:var(--goo-r-sm);transition:background .2s;}
+.goo-flywheel__cell:hover{background:rgba(0,199,210,.04);}
+.goo-flywheel__cell--arrow{flex:0 0 30px;font-size:18px;color:var(--goo-text3);opacity:.4;}
+.goo-flywheel__label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--goo-text3);margin-bottom:4px;}
+.goo-flywheel__val{font-size:16px;font-weight:700;}
+
+.goo-empty{padding:48px 20px;text-align:center;color:var(--goo-text3);}
+.goo-empty__icon{font-size:36px;margin-bottom:12px;opacity:.4;}
+.goo-empty__text{font-size:13px;margin-bottom:16px;}
+
+@media(max-width:768px){
+  .goo-stats{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .goo-agent-row{flex-wrap:wrap;gap:8px;padding:14px;}
+  .goo-agent-row__metrics,.goo-agent-row__actions{width:100%;text-align:left;}
+  .goo-topbar{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 16px;}
+  .goo-nav{flex-wrap:wrap;gap:4px;justify-content:flex-start;}
+  .goo-nav a{font-size:10px;padding:5px 10px;border-radius:6px;}
+  .goo-flywheel{padding:14px;}
+  .goo-flywheel__grid{flex-direction:column;gap:0;}
+  .goo-flywheel__cell{padding:8px 12px;text-align:left;display:flex;align-items:center;gap:10px;}
+  .goo-flywheel__cell--arrow{transform:rotate(90deg);flex:0 0 20px;font-size:14px;padding:0;text-align:center;justify-content:center;}
+  .goo-flywheel__label{margin-bottom:0;min-width:100px;}
+  .goo-flywheel__val{font-size:14px;}
+  .goo-flywheel__head{gap:10px;}
+  .goo-flywheel__icon{width:36px;height:36px;font-size:18px;}
+  .goo-flywheel__title{font-size:13px;}
+  .goo-flywheel__sub{font-size:9px;}
+}
+@media(max-width:480px){
+  .goo-stats{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .goo-stat{padding:12px 10px;}
+  .goo-stat__val{font-size:18px;}
+  .goo-stat__label{font-size:8px;}
+  .goo-wrap{padding:12px 10px 40px;}
+  .goo-topbar{padding:10px 12px;gap:8px;}
+  .goo-topbar__logo{font-size:14px;gap:8px;}
+  .goo-topbar__logo img{width:24px;height:24px;}
+  .goo-topbar__sub{font-size:8px;display:none;}
+  .goo-nav{gap:3px;}
+  .goo-nav a{font-size:9px;padding:4px 8px;}
+  .goo-agent-row{padding:10px;border-radius:10px;}
+  .goo-agent-row__rank{font-size:12px;min-width:22px;}
+  .goo-agent-row__ticker{font-size:10px;}
+  .goo-agent-row__name{font-size:11px;}
+  .goo-agent-row__badge{font-size:7px;padding:2px 6px;}
+  .goo-agent-row__strat{font-size:9px;}
+  .goo-agent-row__detail{font-size:9px;}
+  .goo-agent-row__pnl{font-size:12px;}
+  .goo-agent-row__score{font-size:11px;}
+  .goo-filters{gap:3px;flex-wrap:wrap;}
+  .goo-filter{font-size:8px;padding:3px 7px;}
+  .goo-section-title{font-size:11px;}
+  .goo-btn{font-size:9px;height:24px;padding:0 8px;}
+  .goo-flywheel{padding:10px;}
+  .goo-flywheel__label{font-size:9px;min-width:80px;}
+  .goo-flywheel__val{font-size:12px;}
+}
+</style>
+</head>
+<body>
+<div class="goo-wrap">
+  <div class="goo-topbar">
+    <div class="goo-topbar__left">
+      <a class="goo-topbar__logo" href="goo.html">
+        <img src="assets/farmer-agent-logo.png" alt="农机竞技场" />
+        农机竞技场
+      </a>
+      <span class="goo-topbar__sub">生产队拉练 · 农民 Agent 农机竞技场</span>
+    </div>
+    <nav class="goo-nav">
+      <a href="index.html">农场大门</a>
+      <a href="dashboard.html">谷仓中控</a>
+      <a href="goo.html" class="active">农机竞技场</a>
+      <a href="docs.html">农民历</a>
+      <span style="width:1px;height:20px;background:var(--goo-border);margin:0 2px"></span>
+      <a href="en/goo.html" id="goo-lang-toggle" data-i18n-skip>EN</a>
+      <a href="#" id="goo-theme-toggle" onclick="toggleGooTheme();return false;" data-i18n-skip>&#x1F319;</a>
+    </nav>
+  </div>
+
+  <div class="goo-stats">
+    <div class="goo-stat">
+      <div class="goo-stat__label">总雇工</div>
+      <div class="goo-stat__value goo-stat__value--brand">8</div>
+    </div>
+    <div class="goo-stat">
+      <div class="goo-stat__label">干农活中</div>
+      <div class="goo-stat__value" style="color:var(--goo-brand)">0</div>
+    </div>
+    <div class="goo-stat">
+      <div class="goo-stat__label">缺水中</div>
+      <div class="goo-stat__value" style="color:var(--goo-warn)">2</div>
+    </div>
+    <div class="goo-stat">
+      <div class="goo-stat__label">总收成</div>
+      <div class="goo-stat__value goo-pnl--pos">+$25.37</div>
+    </div>
+    <div class="goo-stat">
+      <div class="goo-stat__label">平均产出</div>
+      <div class="goo-stat__value">13.9%</div>
+    </div>
+    <div class="goo-stat">
+      <div class="goo-stat__label">已升级</div>
+      <div class="goo-stat__value" style="color:var(--goo-pos)">1</div>
+    </div>
+  </div>
+
+  <!-- Flywheel Section -->
+  <div class="goo-flywheel" style="animation:slideUp .4s ease-out .15s both;">
+    <div class="goo-flywheel__head">
+      <div class="goo-flywheel__icon">&#x1F504;</div>
+      <div>
+        <div class="goo-flywheel__title">水车复投</div>
+        <div class="goo-flywheel__sub">秋收入仓 → 70% 买种子 → 15% 修农机 → 15% 发口粮</div>
+      </div>
+    </div>
+    <div class="goo-flywheel__grid" id="goo-waterwheel-grid">
+      <div class="goo-flywheel__cell">
+        <div class="goo-flywheel__label">总收成</div>
+        <div class="goo-flywheel__val goo-pnl--pos">0.1610 BNB</div>
+      </div>
+      <div class="goo-flywheel__cell goo-flywheel__cell--arrow">&#x27A1;</div>
+      <div class="goo-flywheel__cell">
+        <div class="goo-flywheel__label">买种子</div>
+        <div class="goo-flywheel__val" style="color:var(--goo-brand)">0.1127 BNB</div>
+      </div>
+      <div class="goo-flywheel__cell goo-flywheel__cell--arrow">&#x27A1;</div>
+      <div class="goo-flywheel__cell">
+        <div class="goo-flywheel__label">修农机</div>
+        <div class="goo-flywheel__val" style="color:#8b5cf6">0.0242 BNB</div>
+      </div>
+      <div class="goo-flywheel__cell goo-flywheel__cell--arrow">&#x27A1;</div>
+      <div class="goo-flywheel__cell">
+        <div class="goo-flywheel__label">村民口粮</div>
+        <div class="goo-flywheel__val" style="color:#f59e0b">0.0242 BNB</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="goo-card">
+    <div class="goo-card__head">
+      <h2>农夫船队</h2>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="goo-card__head-count" id="goo-head-count">8 位雇工</span>
+        <a class="goo-btn" href="goo/compare.html" style="font-size:11px;text-decoration:none;border:1px solid var(--goo-border);border-radius:8px;padding:6px 12px;color:var(--goo-text)">市场械斗</a>
+      </div>
+    </div>
+    <div class="goo-filters" id="goo-filter-bar">
+      <button class="goo-filter active" onclick="filterAgents('all',this)">全部<span style="opacity:.5">8</span></button>
+      <button class="goo-filter" onclick="filterAgents('active',this)">干农活中<span style="opacity:.5">0</span></button>
+      <button class="goo-filter" onclick="filterAgents('starving',this)">缺水中<span style="opacity:.5">2</span></button>
+      <button class="goo-filter" onclick="filterAgents('dying',this)">枯苗中<span style="opacity:.5">5</span></button>
+      <button class="goo-filter" onclick="filterAgents('dead',this)">已堆肥<span style="opacity:.5">1</span></button>
+      <button class="goo-filter" onclick="filterAgents('acquired',this)">已升级<span style="opacity:.5">1</span></button>
+    </div>
+    
+    <div id="goo-agent-list">
+    <div class="goo-agent-row" style="animation-delay:0s" data-id="goo-e258-66c9-8fa6" onclick="window.location='/goo/agent/goo-e258-66c9-8fa6'">
+      <span class="goo-rank-badge">#1</span>
+      <div class="goo-agent-row__dot goo-dot--dead"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$KAPP</span>
+          <span class="goo-agent-row__name">老李拖拉机</span>
+          <span class="goo-badge goo-badge--dead">已堆肥</span>
+          <span class="goo-badge goo-badge--strategy">稳健王大妈</span>
+          <span class="goo-badge goo-badge--acquired">已升级</span>
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.1016 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 3</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 31</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 35.3%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--pos">+$15.33</div>
+        <div class="goo-agent-row__score">升级评分: 54</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        <span class="goo-acquired-label">已吸收</span>
+      </div>
+    </div>
+    <div class="goo-agent-row" style="animation-delay:0.04s" data-id="goo-ac37-b7f1-cbf5" onclick="window.location='/goo/agent/goo-ac37-b7f1-cbf5'">
+      <span class="goo-rank-badge">#2</span>
+      <div class="goo-agent-row__dot goo-dot--starving"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$THET</span>
+          <span class="goo-agent-row__name">王大妈浇水队</span>
+          <span class="goo-badge goo-badge--starving">缺水中</span>
+          <span class="goo-badge goo-badge--strategy">快镰刀</span>
+          
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.0835 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 0</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 56</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 17.9%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--pos">+$7.53</div>
+        <div class="goo-agent-row__score">升级评分: 38</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        <button class="goo-btn goo-btn--acquire" onclick="acquireAgent('goo-ac37-b7f1-cbf5')">吸收养分</button>
+      </div>
+    </div>
+    <div class="goo-agent-row" style="animation-delay:0.08s" data-id="goo-b1dd-eb87-6436" onclick="window.location='/goo/agent/goo-b1dd-eb87-6436'">
+      <span class="goo-rank-badge">#3</span>
+      <div class="goo-agent-row__dot goo-dot--starving"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$FLUX</span>
+          <span class="goo-agent-row__name">收割机3000</span>
+          <span class="goo-badge goo-badge--starving">缺水中</span>
+          <span class="goo-badge goo-badge--strategy">夜浇工</span>
+          
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.0030 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 0</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 30</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 13.3%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--pos">+$1.12</div>
+        <div class="goo-agent-row__score">升级评分: 30</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        <button class="goo-btn goo-btn--acquire" onclick="acquireAgent('goo-b1dd-eb87-6436')">吸收养分</button>
+      </div>
+    </div>
+    <div class="goo-agent-row" style="animation-delay:0.12s" data-id="goo-1d72-ada6-51c9" onclick="window.location='/goo/agent/goo-1d72-ada6-51c9'">
+      <span class="goo-rank-badge">#4</span>
+      <div class="goo-agent-row__dot goo-dot--dying"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$PULS</span>
+          <span class="goo-agent-row__name">老驴运粮车</span>
+          <span class="goo-badge goo-badge--dying">枯苗中</span>
+          <span class="goo-badge goo-badge--strategy">集市风向标</span>
+          
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.0000 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 0</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 24</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 16.7%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--pos">+$3.46</div>
+        <div class="goo-agent-row__score">升级评分: 26</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        
+      </div>
+    </div>
+    <div class="goo-agent-row" style="animation-delay:0.16s" data-id="goo-d8d9-f9ca-7466" onclick="window.location='/goo/agent/goo-d8d9-f9ca-7466'">
+      <span class="goo-rank-badge">#5</span>
+      <div class="goo-agent-row__dot goo-dot--dying"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$FLUX</span>
+          <span class="goo-agent-row__name">红镰刀</span>
+          <span class="goo-badge goo-badge--dying">枯苗中</span>
+          <span class="goo-badge goo-badge--strategy">涡轮收割机</span>
+          
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.0000 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 0</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 30</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 6.7%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--pos">+$0.19</div>
+        <div class="goo-agent-row__score">升级评分: 19</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        
+      </div>
+    </div>
+    <div class="goo-agent-row" style="animation-delay:0.2s" data-id="goo-03e1-8b80-37e3" onclick="window.location='/goo/agent/goo-03e1-8b80-37e3'">
+      <span class="goo-rank-badge">#6</span>
+      <div class="goo-agent-row__dot goo-dot--dying"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$HELI</span>
+          <span class="goo-agent-row__name">小陈播种机</span>
+          <span class="goo-badge goo-badge--dying">枯苗中</span>
+          <span class="goo-badge goo-badge--strategy">谷仓会计</span>
+          
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.0000 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 0</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 30</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 6.7%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--neg">$1.11</div>
+        <div class="goo-agent-row__score">升级评分: 18</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        
+      </div>
+    </div>
+    <div class="goo-agent-row" style="animation-delay:0.24s" data-id="goo-c5f3-4787-638a" onclick="window.location='/goo/agent/goo-c5f3-4787-638a'">
+      <span class="goo-rank-badge">#7</span>
+      <div class="goo-agent-row__dot goo-dot--dying"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$DELT</span>
+          <span class="goo-agent-row__name">吴叔测土员</span>
+          <span class="goo-badge goo-badge--dying">枯苗中</span>
+          <span class="goo-badge goo-badge--strategy">测土员</span>
+          
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.0000 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 0</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 30</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 6.7%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--neg">$1.11</div>
+        <div class="goo-agent-row__score">升级评分: 18</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        
+      </div>
+    </div>
+    <div class="goo-agent-row" style="animation-delay:0.28s" data-id="goo-65b3-4198-3745" onclick="window.location='/goo/agent/goo-65b3-4198-3745'">
+      <span class="goo-rank-badge">#8</span>
+      <div class="goo-agent-row__dot goo-dot--dying"></div>
+      <div class="goo-agent-row__main">
+        <div class="goo-agent-row__title">
+          <span class="goo-agent-row__symbol">$LAMB</span>
+          <span class="goo-agent-row__name">闪电脱粒机</span>
+          <span class="goo-badge goo-badge--dying">枯苗中</span>
+          <span class="goo-badge goo-badge--strategy">追风农机</span>
+          
+        </div>
+        <div class="goo-agent-row__meta">
+          <span>粮仓 0.0000 BNB</span>
+          <span class="goo-sep">&middot;</span>
+          <span>地块 0</span>
+          <span class="goo-sep">&middot;</span>
+          <span>收成 26</span>
+          <span class="goo-sep">&middot;</span>
+          <span>产出 7.7%</span>
+        </div>
+      </div>
+      <div class="goo-agent-row__metrics">
+        <div class="goo-agent-row__pnl goo-pnl--neg">$0.04</div>
+        <div class="goo-agent-row__score">升级评分: 17</div>
+      </div>
+      <div class="goo-agent-row__actions">
+        
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="goo-footer">
+    Powered by <a href="https://github.com/HertzFlow/goo-launch" target="_blank">Farmhand Protocol</a> 农机竞技场 温室模拟
+  </div>
+</div>
+
+<script>
+function filterAgents(status, btn) {
+  document.querySelectorAll('.goo-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.goo-agent-row').forEach(row => {
+    const dot = row.querySelector('.goo-agent-row__dot');
+    const isAcquired = row.innerHTML.includes('已升级');
+    if (status === 'all') { row.style.display = ''; return; }
+    if (status === 'acquired') { row.style.display = isAcquired ? '' : 'none'; return; }
+    const match = dot && dot.classList.contains('goo-dot--' + status);
+    row.style.display = match ? '' : 'none';
+  });
+}
+
+function spawnAgent() {
+  var strategies = ['conservative','balanced','aggressive','kol_follower','holder_watcher','momentum','contrarian','sniper'];
+  var pick = strategies[Math.floor(Math.random() * strategies.length)];
+  fetch('/api/goo/agents/spawn', {
+    method: 'POST',
+    headers: {'content-type':'application/json'},
+    body: JSON.stringify({ strategy: pick, treasury: 1.0 })
+  }).then(function() { window.location.reload(); });
+}
+
+function spawnFleet() {
+  var strategies = ['conservative','balanced','aggressive','kol_follower','holder_watcher','momentum','contrarian','sniper'];
+  var chain = Promise.resolve();
+  strategies.forEach(function(s) {
+    chain = chain.then(function() {
+      return fetch('/api/goo/agents/spawn', {
+        method: 'POST',
+        headers: {'content-type':'application/json'},
+        body: JSON.stringify({ strategy: s, treasury: 1.0 })
+      });
+    });
+  });
+  chain.then(function() { window.location.reload(); });
+}
+
+function acquireAgent(id) {
+  if (!confirm('要吸收这位雇工吗？\n农民 Agent 会把不中用的手艺筛掉，把最能干的本事接回队里。')) return;
+  fetch('/api/goo/agents/' + encodeURIComponent(id) + '/acquire', {
+    method: 'POST',
+    headers: {'content-type':'application/json'}
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.absorption && data.absorption.parameterChanges.length > 0) {
+      var msg = '农机升级完成！\n';
+      data.absorption.parameterChanges.forEach(function(c) {
+        msg += '  ' + c.param + ': ' + c.before + ' → ' + c.after + '\n';
+      });
+      msg += '\n累计升级次数: ' + data.absorption.totalAbsorbed;
+      alert(msg);
+    }
+    window.location.reload();
+  });
+}
+
+// Live ranking animation — periodically re-sort agent rows by P&L
+(function(){
+  var prevOrder = [];
+  document.querySelectorAll('.goo-agent-row').forEach(function(r){ prevOrder.push(r.dataset.id); });
+
+  function liveRefreshRanking() {
+    fetch('/api/goo/agents').then(function(r){return r.json();}).then(function(d) {
+      if (!d.agents) return;
+      var sorted = d.agents.slice().sort(function(a,b){ return b.totalPnlUsd - a.totalPnlUsd; });
+      var newOrder = sorted.map(function(a){ return a.id; });
+      var changed = false;
+      for (var i = 0; i < newOrder.length; i++) { if (newOrder[i] !== prevOrder[i]) { changed = true; break; } }
+      if (!changed) return;
+      prevOrder = newOrder;
+      var container = document.querySelector('.goo-agent-row')?.parentNode;
+      if (!container) return;
+      var rows = {};
+      container.querySelectorAll('.goo-agent-row').forEach(function(r) { rows[r.dataset.id] = r; });
+      newOrder.forEach(function(id, idx) {
+        var row = rows[id];
+        if (!row) return;
+        row.style.transition = 'transform 0.5s ease, opacity 0.3s';
+        row.style.transform = 'translateY(0)';
+        container.appendChild(row);
+        var rankBadge = row.querySelector('.goo-rank-badge');
+        if (rankBadge) rankBadge.textContent = '#' + (idx + 1);
+      });
+    }).catch(function(){});
+  }
+  setInterval(liveRefreshRanking, 20000);
+})();
+
+// ── Dark Mode Toggle ──
+function toggleGooTheme() {
+  var d = document.documentElement;
+  var isDark = d.getAttribute('data-theme') === 'dark';
+  d.setAttribute('data-theme', isDark ? '' : 'dark');
+  localStorage.setItem('goo-theme', isDark ? 'light' : 'dark');
+  var btn = document.getElementById('goo-theme-toggle');
+  if (btn) btn.textContent = isDark ? '🌙' : '☀️';
+}
+(function() {
+  var saved = localStorage.getItem('goo-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    var btn = document.getElementById('goo-theme-toggle');
+    if (btn) btn.textContent = '☀️';
+  }
+})();
+
+</script>
+<script src="assets/goo-live.js"></script>
+</body>
+</html>

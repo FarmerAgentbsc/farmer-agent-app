@@ -1,0 +1,19 @@
+.DS_Store
+.env
+node_modules
+npm-debug.log*
+server/data/state.json
+
+# Old source snapshot kept locally for reference only
+/1776570442.mp4
+/_downloads.html
+/airdrop.html
+/dashboard.html
+/docs.html
+/docs﹖lang=en.html
+/docs﹖lang=zh.html
+/goo.html
+/index.html
+/assets/
+/cloud/
+/goo/

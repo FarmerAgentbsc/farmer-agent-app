@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>丰收庆典 | 农民 Agent</title>
+<link rel="icon" type="image/png" href="assets/farmer-agent-logo.png" />
+<link rel="apple-touch-icon" href="assets/farmer-agent-logo.png" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&amp;display=swap" rel="stylesheet" />
+<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#080808;--panel:#0f0f0f;--border:#1c1c1c;--border2:#252525;
+  --yellow:#F6E70F;--yr:246,231,15;--green:#39FF14;--red:#FF4040;
+  --white:rgba(255,255,255,0.88);--muted:rgba(255,255,255,0.38);
+  --dot-color:255,255,255;
+  --r:10px;--r-sm:6px;
+  font-family:'JetBrains Mono',monospace;
+}
+[data-theme="light"]{
+  --bg:#f4f4f0;--panel:#ffffff;--border:#e0dfd8;--border2:#d0cfca;
+  --yellow:#b8a800;--yr:184,168,0;--green:#1a8f00;--red:#d43030;
+  --white:rgba(20,20,18,0.88);--muted:rgba(20,20,18,0.42);
+  --dot-color:20,20,18;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--white);transition:background .3s,color .3s;-webkit-overflow-scrolling:touch;}
+html{scrollbar-width:none;}
+html::-webkit-scrollbar{display:none;}
+body{overscroll-behavior-y:contain;}
+canvas#airdrop-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.09;}
+[data-theme="light"] canvas#airdrop-canvas{opacity:.05;}
+[data-theme="light"] .a-hero{background:#fff;border-color:var(--border);}
+[data-theme="light"] .a-stat{background:#fff;border-color:var(--border);}
+[data-theme="light"] .a-checker{background:#fff;border-color:var(--border);}
+[data-theme="light"] .a-card{background:#fff;border-color:var(--border);}
+[data-theme="light"] .a-kv{border-bottom-color:rgba(20,20,18,.06);}
+[data-theme="light"] .a-table-wrap{background:#fff;border-color:var(--border);}
+[data-theme="light"] .a-tr:nth-child(odd){background:rgba(20,20,18,.02);}
+[data-theme="light"] .a-pub{background:#fff;border-color:var(--border);}
+[data-theme="light"] .a-pub pre{background:#f0f0ec;color:#1a6600;}
+[data-theme="light"] .a-input{background:#f8f8f5;border-color:var(--border);color:var(--white);}
+[data-theme="light"] .a-nav a{border-color:var(--border);}
+[data-theme="light"] #airdrop-theme-toggle{border-color:var(--border);}
+.a-wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:32px 24px 64px;}
+.a-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:12px;}
+.a-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:var(--yellow);letter-spacing:.08em;text-decoration:none;}
+.a-logo-avatar{width:32px;height:32px;border-radius:12px;border:2px solid rgba(var(--yr),.35);background:rgba(255,247,210,.96);padding:3px;object-fit:contain;box-shadow:0 0 14px rgba(var(--yr),.25),0 0 30px rgba(var(--yr),.08);animation:aLogoGlow 3s ease-in-out infinite;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .35s ease;}
+.a-logo:hover .a-logo-avatar{transform:translateY(-3px) scale(1.1);box-shadow:0 0 22px rgba(var(--yr),.5),0 0 48px rgba(var(--yr),.18);border-color:rgba(var(--yr),.7);}
+@keyframes aLogoGlow{0%,100%{box-shadow:0 0 14px rgba(var(--yr),.25),0 0 30px rgba(var(--yr),.08);}50%{box-shadow:0 0 20px rgba(var(--yr),.4),0 0 40px rgba(var(--yr),.15);}}
+.a-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.a-nav a,.a-nav button.a-nav-btn{color:var(--muted);font-size:11px;text-decoration:none;padding:5px 12px;border:1px solid var(--border);border-radius:var(--r-sm);transition:all .2s;background:transparent;font-family:inherit;cursor:pointer;}
+.a-nav a:hover,.a-nav button.a-nav-btn:hover{color:var(--yellow);border-color:var(--yellow);box-shadow:0 0 8px rgba(246,231,15,.25);}
+.a-nav a.active{color:var(--yellow);border-color:var(--yellow);}
+.a-hero{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:32px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;}
+.a-hero h1{font-size:24px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:flex;align-items:center;gap:14px;}
+.a-hero h1 span{color:var(--yellow);}
+.a-hero p{color:var(--muted);font-size:13px;line-height:1.6;max-width:480px;}
+.a-hero-avatar{width:48px;height:48px;border-radius:14px;border:2px solid rgba(var(--yr),.4);background:rgba(255,247,210,.96);padding:4px;object-fit:contain;box-shadow:0 0 18px rgba(var(--yr),.3),0 0 40px rgba(var(--yr),.1);animation:aHeroGlow 3s ease-in-out infinite;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .35s ease;}
+.a-hero-avatar:hover{transform:translateY(-4px) scale(1.08);box-shadow:0 0 28px rgba(var(--yr),.5),0 0 60px rgba(var(--yr),.2);border-color:rgba(var(--yr),.7);}
+@keyframes aHeroGlow{0%,100%{box-shadow:0 0 18px rgba(var(--yr),.3),0 0 40px rgba(var(--yr),.1);}50%{box-shadow:0 0 24px rgba(var(--yr),.45),0 0 50px rgba(var(--yr),.18);}}
+.a-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid;font-size:11px;font-weight:500;letter-spacing:.04em;}
+.a-badge--live{border-color:var(--green);color:var(--green);background:rgba(57,255,20,.07);}
+.a-badge--live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:live-pulse 1.2s infinite;}
+.a-badge--standby{border-color:var(--yellow);color:var(--yellow);background:rgba(246,231,15,.07);}
+.a-badge--standby::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--yellow);}
+@keyframes live-pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.a-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.a-stat{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;transition:border-color .2s,box-shadow .2s;}
+.a-stat:hover{border-color:var(--yellow);box-shadow:0 0 16px rgba(246,231,15,.12);}
+.a-stat__label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.a-stat__val{font-size:22px;font-weight:700;color:var(--yellow);}
+.a-stat__sub{font-size:10px;color:var(--muted);margin-top:3px;}
+.a-checker{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:24px;}
+.a-checker h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--yellow);margin-bottom:16px;}
+.a-input-row{display:flex;gap:10px;flex-wrap:wrap;}
+.a-input{flex:1;min-width:260px;background:#151515;border:1px solid var(--border);border-radius:var(--r-sm);color:var(--white);font-family:inherit;font-size:13px;padding:10px 14px;outline:none;transition:border-color .2s;}
+.a-input:focus{border-color:var(--yellow);}
+.a-btn{padding:10px 20px;border:1px solid var(--yellow);border-radius:var(--r-sm);background:transparent;color:var(--yellow);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;letter-spacing:.04em;}
+.a-btn:hover{background:var(--yellow);color:#000;box-shadow:0 0 16px rgba(246,231,15,.35);}
+.a-result{margin-top:14px;padding:14px 16px;border-radius:var(--r-sm);font-size:13px;display:none;}
+.a-result--eligible{background:rgba(57,255,20,.08);border:1px solid var(--green);color:var(--green);}
+.a-result--not{background:rgba(255,64,64,.08);border:1px solid var(--red);color:var(--red);}
+.a-result--nodata{background:rgba(246,231,15,.06);border:1px solid var(--yellow);color:var(--yellow);}
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+@media(max-width:700px){.a-grid{grid-template-columns:1fr;}}
+@media(max-width:640px){
+.a-wrap{padding:16px 12px 40px;}
+.a-topbar{margin-bottom:16px;gap:8px;}
+.a-logo{font-size:15px;gap:8px;}
+.a-logo-avatar{width:26px;height:26px;}
+.a-nav{gap:5px;}
+.a-nav a,.a-nav button.a-nav-btn{font-size:9px;padding:4px 8px;}
+.a-hero{padding:18px 16px;margin-bottom:16px;gap:12px;flex-direction:column;border-radius:12px;}
+.a-hero h1{font-size:16px;gap:10px;}
+.a-hero-avatar{width:36px;height:36px;}
+.a-hero p{font-size:11px;line-height:1.5;}
+.a-stats{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
+.a-stat{padding:14px 12px;border-radius:8px;}
+.a-stat__label{font-size:9px;}
+.a-stat__val{font-size:18px;}
+.a-stat__sub{font-size:9px;}
+.a-checker{padding:14px;margin-bottom:16px;border-radius:10px;}
+.a-checker h2{font-size:10px;margin-bottom:12px;}
+.a-input{min-width:0;font-size:12px;padding:8px 10px;}
+.a-btn{font-size:12px;padding:8px 14px;}
+.a-grid{grid-template-columns:1fr;gap:10px;margin-bottom:16px;}
+.a-card{padding:14px;border-radius:10px;}
+.a-card h2{font-size:10px;margin-bottom:10px;}
+.a-kv{font-size:11px;gap:4px;padding:6px 0;}
+.a-kv span{font-size:10px;}
+.a-kv strong{text-align:right;font-size:10px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.a-table-wrap{border-radius:10px;}
+.a-td{padding:6px 10px;font-size:10px;}
+th.a-th{padding:6px 10px;font-size:9px;}
+.a-note{padding:10px 12px;font-size:11px;border-radius:8px;}
+.a-badge{font-size:10px;padding:4px 10px;}
+.a-footer{margin-top:24px;font-size:9px;}
+}
+.a-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:20px;overflow:hidden;opacity:0;transform:translateY(16px);animation:aCardIn .5s ease forwards;}
+.a-stat{opacity:0;transform:translateY(12px);animation:aCardIn .4s ease forwards;}
+.a-checker{opacity:0;transform:translateY(14px);animation:aCardIn .45s ease forwards;}
+.a-hero{opacity:0;transform:translateY(10px);animation:aCardIn .35s ease forwards;}
+.a-table-wrap{opacity:0;transform:translateY(16px);animation:aCardIn .5s ease forwards;}
+.a-note{opacity:0;transform:translateY(12px);animation:aCardIn .4s ease forwards;}
+.a-pub{opacity:0;transform:translateY(16px);animation:aCardIn .5s ease forwards;}
+@keyframes aCardIn{to{opacity:1;transform:translateY(0);}}
+.a-stat:nth-child(1){animation-delay:.05s;}.a-stat:nth-child(2){animation-delay:.1s;}.a-stat:nth-child(3){animation-delay:.15s;}.a-stat:nth-child(4){animation-delay:.2s;}.a-stat:nth-child(5){animation-delay:.25s;}.a-stat:nth-child(6){animation-delay:.3s;}
+.a-grid .a-card:nth-child(1){animation-delay:.2s;}.a-grid .a-card:nth-child(2){animation-delay:.28s;}
+.a-card:hover{border-color:rgba(var(--yr),.25);box-shadow:0 0 18px rgba(var(--yr),.08);}
+.a-card h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.a-kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;min-width:0;}
+.a-kv:last-child{border-bottom:none;}
+.a-kv span{color:var(--muted);flex-shrink:0;}
+.a-kv strong{color:var(--white);text-align:right;min-width:0;overflow-wrap:break-word;word-break:break-word;}
+.a-kv strong.yellow{color:var(--yellow);}
+.a-kv strong.green{color:var(--green);}
+.a-table-wrap{overflow-x:auto;border-radius:var(--r);background:var(--panel);border:1px solid var(--border);margin-bottom:24px;}
+.a-table-wrap h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:14px 18px;border-bottom:1px solid var(--border);}
+table.a-table{width:100%;border-collapse:collapse;}
+.a-tr:nth-child(odd){background:rgba(255,255,255,.02);}
+.a-tr:hover{background:rgba(246,231,15,.04);}
+.a-td{padding:8px 18px;font-size:11px;color:var(--white);white-space:nowrap;}
+.a-td.mono{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:10px;}
+.a-td.yellow{color:var(--yellow);}
+.a-td.green{color:var(--green);}
+th.a-th{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 18px;text-align:left;border-bottom:1px solid var(--border);}
+.a-note{background:rgba(246,231,15,.05);border:1px solid rgba(246,231,15,.15);border-radius:var(--r-sm);padding:12px 16px;font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.a-pub{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:24px;}
+.a-pub h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;}
+.a-pub pre{font-size:11px;color:var(--green);background:#030303;border-radius:var(--r-sm);padding:14px;overflow-x:auto;line-height:1.6;}
+.a-empty{color:var(--muted);font-size:12px;padding:24px 18px;text-align:center;}
+.a-footer{text-align:center;font-size:10px;color:var(--muted);margin-top:40px;letter-spacing:.06em;}
+</style>
+</head>
+<body>
+<canvas id="airdrop-canvas"></canvas>
+<div class="a-wrap">
+
+  <div class="a-topbar">
+    <a class="a-logo" href="index.html"><img class="a-logo-avatar" src="assets/farmer-agent-logo.png" alt="农民 Agent" />农民 Agent</a>
+    <nav class="a-nav">
+      <a href="index.html">农场大门</a>
+      <a href="dashboard.html">谷仓中控</a>
+      <a href="docs.html">农民历</a>
+      <a href="goo.html">农机竞技场</a>
+      <a href="airdrop.html" class="active">丰收庆典</a>
+      <a href="cloud/agents.html" id="airdrop-cloud-btn" style="cursor:pointer;color:var(--yellow);border-color:rgba(246,231,15,.4);">拖拉机云</a>
+      <a class="a-nav-btn" href="en/airdrop.html">EN</a><button id="airdrop-theme-toggle" class="a-nav-btn" onclick="airToggleTheme()">☀</button>
+    </nav>
+  </div>
+
+  <div class="a-hero">
+    <div>
+      <h1><img class="a-hero-avatar" src="assets/farmer-agent-logo.png" alt="农民 Agent" /><span>农民 Agent</span> · <span>丰收庆典</span></h1>
+      <p>水车会把这一季的秋收按比例分给合格村民。检查一下你的口粮卡，看看这只钱包能不能赶上这一轮分粮。</p>
+    </div>
+    <div>
+      <div id="airdrop-status-badge" class="a-badge a-badge--standby">熬锅待发</div>
+      <div id="airdrop-status-time" style="font-size:10px;color:var(--muted);margin-top:8px;">最近扫描：2026-04-15 12:04:13</div>
+    </div>
+  </div>
+
+  <div id="airdrop-stats" class="a-stats">
+    <div class="a-stat">
+      <div class="a-stat__label">丰收粮仓</div>
+      <div class="a-stat__val">$805.00</div>
+      <div class="a-stat__sub">本轮分粮储备</div>
+    </div>
+    <div class="a-stat">
+      <div class="a-stat__label">合格村民</div>
+      <div class="a-stat__val">7</div>
+      <div class="a-stat__sub">已登记口粮卡</div>
+    </div>
+    <div class="a-stat">
+      <div class="a-stat__label">已发口粮</div>
+      <div class="a-stat__val">0</div>
+      <div class="a-stat__sub">本次庆典</div>
+    </div>
+    <div class="a-stat">
+      <div class="a-stat__label">彩排次数</div>
+      <div class="a-stat__val">0</div>
+      <div class="a-stat__sub">模拟发放</div>
+    </div>
+    <div class="a-stat">
+      <div class="a-stat__label">总收成</div>
+      <div class="a-stat__val">$32742.20</div>
+      <div class="a-stat__sub">全部谷仓合计</div>
+    </div>
+    <div class="a-stat">
+      <div class="a-stat__label">名单村民</div>
+      <div class="a-stat__val">0</div>
+      <div class="a-stat__sub">已上车名单</div>
+    </div>
+  </div>
+
+  <div id="airdrop-note" class="a-note">先把分粮厨房点着，再导入口粮快照，系统才能生成这一轮的丰收名单。</div>
+
+  <div class="a-checker">
+    <h2>检查口粮</h2>
+    <div class="a-input-row">
+      <input id="wallet-input" class="a-input" type="text" placeholder="输入村民钱包地址（0x...）" autocomplete="off" spellcheck="false" />
+      <button class="a-btn" onclick="checkWallet()">检查口粮</button>
+    </div>
+    <div id="wallet-result" class="a-result"></div>
+  </div>
+
+  <div class="a-grid">
+    <div class="a-card" id="airdrop-supply-card">
+      <h2>庆典物资</h2>
+      <div class="a-kv"><span>模式</span><strong class="yellow">尚未选粮</strong></div>
+      <div class="a-kv"><span>作物</span><strong>—</strong></div>
+      <div class="a-kv"><span>总袋数</span><strong>—</strong></div>
+      <div class="a-kv"><span>仓内余粮</span><strong>—</strong></div>
+      <div class="a-kv"><span>市场估值</span><strong>$—</strong></div>
+      <div class="a-kv"><span>厨房备注</span><strong style="font-size:10px;color:var(--muted);max-width:160px;white-space:normal;">当前没有作物通过分粮厨房规则。原因可能包括仅温室模拟、粮仓核验未完成、仓内余粮不足、市价缺失或地块占比太小。</strong></div>
+    </div>
+    <div class="a-card" id="airdrop-kitchen-card">
+      <h2>发放厨房</h2>
+      <div class="a-kv"><span>厨房开火</span><strong>否</strong></div>
+      <div class="a-kv"><span>模式</span><strong class="yellow">熬粥彩排</strong></div>
+      <div class="a-kv"><span>每锅上限</span><strong>20</strong></div>
+      <div class="a-kv"><span>厨房钱包</span><strong style="font-size:10px;color:var(--muted);">—…</strong></div>
+      <div class="a-kv"><span>下一步</span><strong style="font-size:10px;">点火开灶：启用 `ELIZAOK_DISTRIBUTION_EXECUTION_ENABLED`。</strong></div>
+    </div>
+  </div>
+
+  <div class="a-table-wrap" id="airdrop-recipient-wrap">
+    <h2>丰收名单（前 0 / 共 0）</h2>
+    <div class="a-empty">今日粮车还没装人。</div>
+  </div>
+
+  <div class="a-table-wrap" id="airdrop-ledger-wrap">
+    <h2>口粮账本（最近 0 条记录）</h2>
+    <div class="a-empty">还没有发粮记录。</div>
+  </div>
+
+  <div class="a-footer">农民 Agent · 拖拉机系统驱动 · 耕种于 BSC 链</div>
+</div>
+
+<script>
+/* ── Airdrop theme toggle ── */
+window.airToggleTheme = function() {
+  var root = document.documentElement;
+  var isLight = root.getAttribute('data-theme') === 'light';
+  var next = isLight ? 'dark' : 'light';
+  root.setAttribute('data-theme', next);
+  var btn = document.getElementById('airdrop-theme-toggle');
+  if (btn) btn.textContent = next === 'light' ? '🌙' : '☀';
+  try { localStorage.setItem('elizaok-theme', next); } catch(e) {}
+};
+(function(){
+  var saved; try { saved = localStorage.getItem('elizaok-theme'); } catch(e) {}
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    var btn = document.getElementById('airdrop-theme-toggle');
+    if (btn) btn.textContent = '🌙';
+  }
+})();
+
+
+(function(){
+  const canvas=document.getElementById('airdrop-canvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,dots=[];
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;dots=[];const spacing=22;for(let x=0;x<W;x+=spacing)for(let y=0;y<H;y+=spacing)dots.push({x,y,r:0,phase:Math.random()*Math.PI*2});}
+  window.addEventListener('resize',resize);resize();
+  let t=0;
+  function getDotColor(){return document.documentElement.getAttribute('data-theme')==='light'?'20,20,18':'255,255,255';}
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    t+=0.012;
+    const dc=getDotColor();
+    for(const d of dots){
+      const wave=Math.sin(d.x/90+t)*Math.sin(d.y/90+t*0.7);
+      const r=1+wave*1.1;
+      const a=0.35+wave*0.35;
+      ctx.beginPath();ctx.arc(d.x,d.y,Math.max(0.3,r),0,Math.PI*2);
+      ctx.fillStyle='rgba('+dc+','+a+')';ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+const RECIPIENTS=[];
+function checkWallet(){
+  const val=document.getElementById('wallet-input').value.trim().toLowerCase();
+  const el=document.getElementById('wallet-result');
+  if(!val){el.style.display='none';return;}
+  if(RECIPIENTS.length===0){
+    el.className='a-result a-result--nodata';
+    el.innerHTML='还没有村民口粮册，厨房尚未开锅。';
+    el.style.display='block';return;
+  }
+  if(RECIPIENTS.includes(val)){
+    el.className='a-result a-result--eligible';
+    el.innerHTML='✓ 这位村民已经在本轮分粮花名册里。';
+  }else{
+    el.className='a-result a-result--not';
+    el.innerHTML='✗ 这位村民暂未进入本轮分粮名单，资格取决于快照时的持仓门槛。';
+  }
+  el.style.display='block';
+}
+document.getElementById('wallet-input').addEventListener('keydown',function(e){if(e.key==='Enter')checkWallet();});
+
+(function(){
+  function doFinalPollThenReload(sessionId, attempt) {
+    attempt = attempt || 0;
+    fetch('/api/eliza-cloud/hosted/poll?session=' + encodeURIComponent(sessionId), { credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return {}; })
+      .then(function(d){ if ((d && d.status === 'authenticated') || attempt >= 5) { window.location.href = 'cloud/agents.html'; return; } setTimeout(function(){ doFinalPollThenReload(sessionId, attempt + 1); }, 1200); });
+  }
+  function openCloudAuth(btn) {
+    if (btn) btn.style.opacity = '0.5';
+    fetch('/api/eliza-cloud/hosted/start', { method: 'POST', headers: {'content-type':'application/json'}, credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (!data.loginUrl) { window.location.href = '/auth/eliza-cloud?popup=1'; return; }
+        var p = window.open(data.loginUrl, 'elizacloud-auth', 'width=500,height=640,scrollbars=yes');
+        if (!p) { window.location.href = data.loginUrl; return; }
+        if (data.mode === 'cli-session') {
+          var count = 0;
+          var popupWasClosed = false;
+          var ti = setInterval(function() {
+            count++;
+            var closed = (function(){ try{return p.closed;}catch(e){return true;} }());
+            if (closed && !popupWasClosed) {
+              popupWasClosed = true;
+              clearInterval(ti);
+              if (btn) btn.style.opacity = '';
+              doFinalPollThenReload(data.sessionId);
+              return;
+            }
+            if (count > 90) {
+              clearInterval(ti);
+              if (btn) btn.style.opacity = '';
+              doFinalPollThenReload(data.sessionId);
+              return;
+            }
+            fetch('/api/eliza-cloud/hosted/poll?session=' + encodeURIComponent(data.sessionId), { credentials: 'same-origin' })
+              .then(function(r){ return r.json(); })
+              .then(function(pd) {
+                if (pd.status === 'authenticated') {
+                  clearInterval(ti);
+                  try { p.close(); } catch(e) {}
+                  window.location.href = 'cloud/agents.html';
+                }
+              }).catch(function(){});
+          }, 1500);
+        } else {
+          var closeTi = setInterval(function() {
+            try { if (p.closed) { clearInterval(closeTi); window.location.href = 'cloud/agents.html'; } } catch(e) {}
+          }, 800);
+        }
+      })
+      .catch(function() { window.location.href = '/auth/eliza-cloud?popup=1'; });
+  }
+
+  var btn = document.getElementById('airdrop-cloud-btn');
+  if (btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openCloudAuth(this);
+    });
+  }
+})();
+</script>
+<script src="assets/airdrop-live.js"></script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>农民历 | 农民 Agent</title>
+<link rel="icon" type="image/png" href="assets/farmer-agent-logo.png" />
+<link rel="apple-touch-icon" href="assets/farmer-agent-logo.png" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--paper:#efe1bf;--paper2:#f7edd4;--ink:#4d3920;--ink2:#7a6447;--line:#c8b083;--accent:#8f5a2b;--accent2:#6c8b43}
+body{color:var(--ink);font-family:'Cormorant Garamond','Noto Serif SC',serif;line-height:1.75;background:radial-gradient(circle at top left, rgba(143,90,43,.08), transparent 28%),radial-gradient(circle at bottom right, rgba(108,139,67,.08), transparent 28%),linear-gradient(180deg,var(--paper2),var(--paper));overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.doc-topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:rgba(247,237,212,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);gap:16px;flex-wrap:wrap}
+.doc-topbar__left{display:flex;align-items:center;gap:14px}.doc-avatar{width:52px;height:52px;border-radius:14px;overflow:hidden;border:2px solid rgba(143,90,43,.28);background:rgba(255,248,228,.96);padding:4px;box-shadow:0 4px 16px rgba(0,0,0,.08)}.doc-avatar img{width:100%;height:100%;object-fit:contain;display:block}
+.doc-topbar__title{font-size:28px;font-weight:700;letter-spacing:.02em}.doc-topbar__sub{font-size:14px;color:var(--ink2)}
+.doc-topbar__right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.doc-btn{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.32);font-size:14px;color:var(--ink2)}.doc-btn--active{background:rgba(143,90,43,.12);border-color:rgba(143,90,43,.45);color:var(--accent)}.doc-btn-sep{width:1px;height:22px;background:var(--line)}
+.doc-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px;max-width:1180px;margin:0 auto;padding:30px 22px 60px}.doc-toc{position:sticky;top:92px;align-self:start;background:rgba(255,255,255,.28);border:1px solid rgba(143,90,43,.18);border-radius:20px;padding:18px;box-shadow:0 10px 40px rgba(77,57,32,.08)}
+.doc-toc__label{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);margin-bottom:10px}.doc-toc a{display:block;padding:7px 0;color:var(--ink2);font-size:15px}.doc-toc a.active{color:var(--accent);font-weight:700}
+.doc-main section{margin-bottom:30px;scroll-margin-top:100px}.doc-main h2{font-size:34px;margin-bottom:12px;color:var(--accent)}
+.doc-content{background:rgba(255,255,255,.34);border:1px solid rgba(143,90,43,.18);border-radius:24px;padding:24px 26px;box-shadow:0 10px 34px rgba(77,57,32,.08)}
+.doc-content h3{font-size:24px;margin:18px 0 8px;color:var(--ink)}.doc-content p,.doc-content li,.doc-content td,.doc-content summary{font-size:19px}.doc-content ul{padding-left:20px}.doc-content li{margin:8px 0}
+.doc-table{width:100%;border-collapse:collapse;margin-top:8px}.doc-table td{border-top:1px dashed rgba(143,90,43,.25);padding:10px 8px;vertical-align:top}
+.doc-tag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.doc-tag{padding:14px 16px;border:1px solid rgba(143,90,43,.16);border-radius:16px;background:rgba(255,255,255,.24)}.doc-tag strong{display:block;color:var(--accent);font-size:18px;margin-bottom:4px}
+.doc-roadmap{display:flex;flex-direction:column;gap:12px}.doc-rm-item{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:18px;border:1px solid rgba(143,90,43,.16);background:rgba(255,255,255,.22)}.doc-rm-dot{width:12px;height:12px;border-radius:50%;margin-top:9px;background:var(--accent2);flex-shrink:0}.doc-rm-item strong{font-size:20px;color:var(--accent)}
+.doc-faq details{border-top:1px dashed rgba(143,90,43,.24);padding:12px 0}.doc-faq summary{cursor:pointer;font-weight:700;color:var(--accent)}.doc-footer{text-align:center;color:var(--ink2);font-size:15px;margin-top:12px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(77,57,32,.06);padding:2px 6px;border-radius:6px}
+@media(max-width:900px){.doc-layout{grid-template-columns:1fr}.doc-toc{position:static;top:auto}}
+@media(max-width:640px){.doc-topbar{padding:12px}.doc-topbar__title{font-size:22px}.doc-main h2{font-size:26px}.doc-content{padding:18px}.doc-content p,.doc-content li,.doc-content td,.doc-content summary{font-size:17px}.doc-tag-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="doc-topbar">
+  <div class="doc-topbar__left">
+    <div class="doc-avatar"><img src="assets/farmer-agent-logo.png" alt="农民 Agent" /></div>
+    <div>
+      <div class="doc-topbar__title">农民 Agent</div>
+      <div class="doc-topbar__sub">拖拉机系统驱动 · 耕种于 BSC 链</div>
+    </div>
+  </div>
+  <div class="doc-topbar__right">
+    <a class="doc-btn" href="index.html">农场大门</a>
+    <a class="doc-btn" href="dashboard.html">谷仓中控</a>
+    <a class="doc-btn" href="goo.html">农机竞技场</a>
+    <div class="doc-btn-sep"></div>
+    <a class="doc-btn" href="en/docs.html">EN</a>
+    <a class="doc-btn doc-btn--active" href="docs.html">中文</a>
+  </div>
+</div>
+<div class="doc-layout">
+  <nav class="doc-toc">
+    <div class="doc-toc__label">农务目录</div>
+    <a href="#intro">项目定位</a>
+    <a href="#features">核心农务循环</a>
+    <a href="#dashboard">谷仓中控</a>
+    <a href="#arena">农机竞技场</a>
+    <a href="#cloud">拖拉机云</a>
+    <a href="#tech">技术棚</a>
+    <a href="#roadmap">24 节气表</a>
+    <a href="#api">农务接口</a>
+    <a href="#faq">农场答疑</a>
+  </nav>
+  <main class="doc-main">
+    <section id="intro">
+      <h2>项目定位</h2>
+      <div class="doc-content">
+        <p>农民 Agent 是一台建立在 BSC Chain 上的终极收益收割机。整套项目不再用冰冷的金融术语讲故事，而是把 DeFi 策略包装成一座自动化农业合作社。</p>
+        <p>它会先去勘探新农田，再做土壤肥力检测，然后播种施肥、安排农机下地，最后把秋收送回谷仓，并按水车机制继续复投、修农机和发口粮。</p>
+      </div>
+    </section>
+    <section id="features">
+      <h2>核心农务循环</h2>
+      <div class="doc-content">
+        <h3>勘探新农田</h3>
+        <p>原本的 Discovery 现在是农场的 APY 雷达。每一轮扫描都在找刚开垦的新地、热度突增的地块，以及可能爆产的怪田。</p>
+        <h3>土壤肥力检测</h3>
+        <p>原来的风险评分被改写成测土报告。肥力、虫害、排水、暴风风险和 rug-pull 腐烂度都会汇总成一句能不能下种的建议。</p>
+        <h3>播种与施肥</h3>
+        <p>建仓和交易被改成播种、施肥和派拖拉机。仓位大小就是种子配额，风险上限就是灌溉纪律。</p>
+        <h3>水车复投</h3>
+        <div class="doc-tag-grid">
+          <div class="doc-tag"><strong>70% 买种子</strong>把收成重新投回农田，继续滚动播种。</div>
+          <div class="doc-tag"><strong>15% 修农机</strong>把 buyback 与 burn 讲成农机维护和装备升级。</div>
+          <div class="doc-tag"><strong>15% 发口粮</strong>把 airdrop 变成村民分粮。</div>
+          <div class="doc-tag"><strong>温室模拟大棚</strong>用来替代 Paper Trading，先在大棚里试种，再决定是否下真田。</div>
+        </div>
+      </div>
+    </section>
+    <section id="dashboard">
+      <h2>谷仓中控</h2>
+      <div class="doc-content">
+        <table class="doc-table">
+          <tr><td><strong>谷仓值班台</strong></td><td>实时播报勘田、测土、播种、天气风险和农机状态。</td></tr>
+          <tr><td><strong>农作物图鉴</strong></td><td>把原来的 Token Explorer 改造成作物图鉴，大葱币、土豆币、豆角田都变成了地块名。</td></tr>
+          <tr><td><strong>粮仓</strong></td><td>持仓展示不再像资产表，而像一张粮袋库存和地块分布图。</td></tr>
+          <tr><td><strong>温室模拟大棚</strong></td><td>所有模拟资金都先在温室里试种。</td></tr>
+          <tr><td><strong>天气预报</strong></td><td>最新信号被解释成暴风、霜冻、灌溉增强和撤资预警。</td></tr>
+          <tr><td><strong>丰收庆典</strong></td><td>空投流程变成了丰收巡游、分粮名单和口粮账本。</td></tr>
+        </table>
+      </div>
+    </section>
+    <section id="arena">
+      <h2>农机竞技场</h2>
+      <div class="doc-content">
+        <p>八位不同风格的农夫和农机会在竞技场里拉练。拖拉机、浇水队、播种机、收割机彼此争夺最好的地块和最高的产出。</p>
+        <ul>
+          <li><strong>干农活中</strong>：状态稳定，持续产出。</li>
+          <li><strong>缺水中</strong>：收益下滑，地块变干。</li>
+          <li><strong>枯苗中</strong>：勉强维持，随时可能退场。</li>
+          <li><strong>已堆肥</strong>：表现太差，被回收成养分升级主系统。</li>
+        </ul>
+        <p>对比页“市场械斗”会把镰刀、收割机和浇水队放在一起，用 APY、无常损失、油耗和日收成做正面对轰。</p>
+      </div>
+    </section>
+    <section id="cloud">
+      <h2>拖拉机云</h2>
+      <div class="doc-content">
+        <p>拖拉机云就是农民 Agent 的公社云中枢。你可以在这里看生产队谁还在干活、工分还剩多少、农机磨损到什么程度。</p>
+        <ul>
+          <li>云端生产队名册</li>
+          <li>工分与粮票账本</li>
+          <li>后续可接入真实公社账户和农机日志</li>
+        </ul>
+      </div>
+    </section>
+    <section id="tech">
+      <h2>技术棚</h2>
+      <div class="doc-content">
+        <ul>
+          <li><strong>运行时</strong>：Bun + TypeScript + elizaOS 2.0</li>
+          <li><strong>农田数据</strong>：GeckoTerminal API 与链上池子遥测</li>
+          <li><strong>链</strong>：叙事统一为 BSC Chain</li>
+          <li><strong>模式</strong>：温室模拟、实时开耕、丰收分配</li>
+          <li><strong>存储</strong>：本地 JSON 与内存缓存</li>
+        </ul>
+      </div>
+    </section>
+    <section id="roadmap">
+      <h2>24 节气表</h2>
+      <div class="doc-content">
+        <div class="doc-roadmap">
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>立春</strong><br>立起农场大门、谷仓中控和完整品牌叙事。</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>小满</strong><br>把勘田、测土、温室模拟和粮仓链路做完整。</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>大暑</strong><br>让农机竞技场和堆肥升级成为核心玩法。</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>秋分</strong><br>完成丰收庆典、水车分配和村民口粮闭环。</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>霜降</strong><br>扩展多链，把隔壁县的新田接进来。</div></div>
+          <div class="doc-rm-item"><span class="doc-rm-dot"></span><div><strong>冬至</strong><br>把治理叙事做成村民议事会。</div></div>
+        </div>
+      </div>
+    </section>
+    <section id="api">
+      <h2>农务接口</h2>
+      <div class="doc-content">
+        <table class="doc-table">
+          <tr><td><code>GET /api/elizaok/candidates</code></td><td>勘田候选与土壤评分</td></tr>
+          <tr><td><code>GET /api/goo/agents</code></td><td>雇工与农机状态</td></tr>
+          <tr><td><code>GET /api/notifications</code></td><td>天气预报与田间动态</td></tr>
+          <tr><td><code>GET /api/absorption/status</code></td><td>农机迭代状态</td></tr>
+          <tr><td><code>POST /api/goo/agents/:id/acquire</code></td><td>吸收优秀雇工的养分</td></tr>
+        </table>
+      </div>
+    </section>
+    <section id="faq">
+      <h2>农场答疑</h2>
+      <div class="doc-content">
+        <div class="doc-faq">
+          <details><summary>这还是交易项目吗？</summary><p>是。底层逻辑仍然是池子扫描、仓位管理和 AI 策略进化，只是叙事层被整体改成了农业世界观。</p></details>
+          <details><summary>为什么要保留温室模拟？</summary><p>因为它比 Paper Trading 更贴合农场设定，也更容易让用户理解“先试种、再下田”的流程。</p></details>
+          <details><summary>拖拉机云后面会接真功能吗？</summary><p>会。后续接入真实 API 后，生产队、工分库、账本和日志都可以从展示页升级成真控制台。</p></details>
+        </div>
+      </div>
+    </section>
+    <div class="doc-footer">由 elizaOS 农业合作社印制</div>
+  </main>
+</div>
+<script>
+var links=document.querySelectorAll('.doc-toc a');
+var sections=document.querySelectorAll('section');
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){
+      var idx=Array.from(sections).indexOf(entry.target);
+      links.forEach(function(link){link.classList.remove('active');});
+      if(links[idx]) links[idx].classList.add('active');
+    }
+  });
+},{rootMargin:'-20% 0px -60% 0px'});
+sections.forEach(function(section){observer.observe(section);});
+</script>
+</body>
+</html>

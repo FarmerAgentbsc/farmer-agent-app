@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>市场械斗 | 农民 Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0a;--surface:rgba(24,24,19,.94);--border:rgba(255,255,255,.08);
+  --text:#f4efe0;--dim:rgba(244,239,224,.55);--brand:#d7b34d;--brand2:#8cc26e;
+  --pos:#6ee7b7;--neg:#fca5a5;
+}
+body{
+  background:
+    radial-gradient(circle at top left, rgba(140,194,110,.08), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(215,179,77,.08), transparent 30%),
+    var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  padding:24px;
+  min-height:100vh;
+}
+a{color:var(--brand);text-decoration:none}
+.cmp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.cmp-header h1{font-size:20px;font-weight:700}
+.cmp-sub{font-size:12px;color:var(--dim);margin-top:4px}
+.cmp-select-row{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.cmp-select-row label{font-size:11px;color:var(--dim);display:flex;flex-direction:column;gap:6px;flex:1;min-width:220px}
+.cmp-select-row select{
+  background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-family:inherit;font-size:12px;cursor:pointer;
+}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cmp-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+}
+.cmp-card__name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.cmp-card__role{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.cmp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cmp-stat-grid,.cmp-extra-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+.cmp-extra-grid{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.cmp-stat{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;gap:12px}
+.cmp-stat span{color:var(--dim)}
+.cmp-stat strong{text-align:right}
+.cmp-pos{color:var(--pos)}
+.cmp-neg{color:var(--neg)}
+.cmp-diff{margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.cmp-diff h3{font-size:14px;margin-bottom:12px;color:var(--brand)}
+.cmp-diff-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;font-size:12px;align-items:center}
+.cmp-diff-head{color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-size:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.cmp-diff-row{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.cmp-diff-row:last-child{border-bottom:none}
+.cmp-win{color:var(--brand2);font-weight:700}
+@media(max-width:768px){
+  body{padding:14px}
+  .cmp-grid{grid-template-columns:1fr}
+  .cmp-diff-grid{grid-template-columns:1.2fr 1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="cmp-header">
+  <div>
+    <h1>市场械斗</h1>
+    <div class="cmp-sub">镰刀、收割机与浇水队的产出对决</div>
+  </div>
+  <a href="../goo.html">返回农机竞技场</a>
+</div>
+
+<div class="cmp-select-row">
+  <label>装备 A
+    <select id="selA"></select>
+  </label>
+  <label>装备 B
+    <select id="selB"></select>
+  </label>
+</div>
+
+<div class="cmp-grid" id="cmpGrid"></div>
+<div class="cmp-diff" id="cmpDiff"></div>
+
+<script>
+var tools = [
+  {老李拖拉机',稳健清田',低',notes:'Great on stab适合稳健田块',color:'#d7b34d'},
+  {王大妈浇水队',快速补水',中',notes:'Likes short bur擅长短冲快撤',color:'#8cc26e'},
+  {收割机高产收割',高',notes:'Huge upside,高收益但吃地形',color:'#6ee7b7'},
+  {老驴运粮车',拉货囤粮',低',notes:'Small but reliable 小收益但很稳',color:'#fbbf24'},
+  {红镰刀',激进快割',很高',notes:'Wins big, 赚得猛也坏得快',color:'#f87171'},
+  {小陈播种机',平衡播种',中',notes:'Good all-season四季通用',color:'#93c5fd'},
+  {吴叔测土员',看土下种',低',notes:'Avoids rugs and rotten 擅长避坑',color:'#c4b5fd'},
+  {闪电脱粒机',追风吃浪',中高',notes:'Best放量后最能打',color:'#f59e0b'}
+];
+
+function fmtPct(v){ return v.toFixed(1) + '%'; }
+function fmtUsd(v){ return '$' + v.toFixed(1) + 'k'; }
+function fmtFuel(v){ return v.toFixed(1) + ' L'; }
+function card(t){
+  return '<div class="cmp-card">' +
+    '<div class="cmp-card__name"><span class="cmp-dot" style="background:'+t.color+'"></span>'+t.name+'</div>' +
+    '<div class="cmp-card__role">'+t.role+'</div>' +
+    '<div class="cmp-stat-grid">' +
+      '<div class="cmp-stat"><span>年化</span><strong class="cmp-pos">'+fmtPct(t.apy)+'</strong></div>' +
+      '<div class="cmp-stat"><span>无常损失</span><strong class="cmp-neg">'+fmtPct(t.il)+'</strong></div>' +
+      '<div class="cmp-stat"><span>日收成</span><strong class="cmp-pos">'+fmtUsd(t.harvest)+'</strong></div>' +
+      '<div class="cmp-stat"><span>油耗</span><strong>'+fmtFuel(t.fuel)+'</strong></div>' +
+      '<div class="cmp-stat"><span>出勤</span><strong>'+fmtPct(t.uptime)+'</strong></div>' +
+      '<div class="cmp-stat"><span>风险</span><strong>'+t.risk+'</strong></div>' +
+    '</div>' +
+    '<div class="cmp-extra-grid">' +
+      '<div class="cmp-stat"><span>地块风格</span><strong>'+t.role+'</strong></div>' +
+      '<div class="cmp-stat"><span>农务批注</span><strong>'+t.notes+'</strong></div>' +
+    '</div>' +
+  '</div>';
+}
+
+function winner(a, b, inverse){
+  if (a === b) return ['', ''];
+  if (inverse) return a < b ? ['cmp-win', ''] : ['', 'cmp-win'];
+  return a > b ? ['cmp-win', ''] : ['', 'cmp-win'];
+}
+
+function diff(a, b){
+  var rows = [
+    ['年化', a.apy, b.apy, '%', false],
+    ['无常损失', a.il, b.il, '%', true],
+    ['日收成', a.harvest, b.harvest, 'k', false],
+    ['油耗', a.fuel, b.fuel, ' L', true],
+    ['出勤', a.uptime, b.uptime, '%', false]
+  ];
+  var html = '<h3>正面对轰</h3><div class="cmp-diff-grid">' +
+    '<div class="cmp-diff-head">指标</div>' +
+    '<div class="cmp-diff-head">'+a.name+'</div>' +
+    '<div class="cmp-diff-head">'+b.name+'</div>';
+  rows.forEach(function(r){
+    var cls = winner(r[1], r[2], r[4]);
+    var left = r[3] === 'k' ? '$' + r[1].toFixed(1) + 'k' : r[1].toFixed(1) + r[3];
+    var right = r[3] === 'k' ? '$' + r[2].toFixed(1) + 'k' : r[2].toFixed(1) + r[3];
+    html += '<div class="cmp-diff-row">'+r[0]+'</div>' +
+      '<div class="cmp-diff-row '+cls[0]+'">'+left+'</div>' +
+      '<div class="cmp-diff-row '+cls[1]+'">'+right+'</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function fillSelect(id){
+  var sel = document.getElementById(id);
+  sel.innerHTML = tools.map(function(t, idx){
+    return '<option value=\"'+t.id+'\"'+(id === 'selB' && idx === 2 ? ' selected' : '')+'>'+t.name+' — '+fmtPct(t.apy)+' APY</option>';
+  }).join('');
+}
+
+function update(){
+  var a = tools.find(function(t){ return t.id === document.getElementById('selA').value; });
+  var b = tools.find(function(t){ return t.id === document.getElementById('selB').value; });
+  if (!a || !b) return;
+  document.getElementById('cmpGrid').innerHTML = card(a) + card(b);
+  document.getElementById('cmpDiff').innerHTML = diff(a, b);
+}
+
+fillSelect('selA');
+fillSelect('selB');
+document.getElementById('selA').value = tools[0].id;
+document.getElementById('selA').addEventListener('change', update);
+document.getElementById('selB').addEventListener('change', update);
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Farmer Agent | The Farm Gate</title>
+  <meta name="description" content="Farmer Agent is the ultimate yield harvester on BSC Chain, an automated farming co-op powered by elizaOS." />
+  <link rel="icon" type="image/png" href="../assets/farmer-agent-logo.png" />
+  <link rel="apple-touch-icon" href="../assets/farmer-agent-logo.png" />
+  <meta property="og:title" content="Farmer Agent | The Farm Gate" />
+  <meta property="og:image" content="../assets/farmer-agent-logo.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Farmer Agent | The Farm Gate" />
+  <meta name="twitter:image" content="../assets/farmer-agent-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@100..800&amp;display=swap" rel="stylesheet" />
+  <style>*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --yellow:#F6E70F;--yellow-dim:rgba(246,231,15,0.70);--yellow-muted:rgba(246,231,15,0.40);
+      --yellow-glow:rgba(246,231,15,0.55);--yellow-soft:#ffe94d;--black:#000;
+    }
+    html, body { width:100%;height:100%;background:var(--black);color:var(--yellow);font-family:'Martian Mono',monospace;overflow:hidden; }
+    .video-bg { position:fixed;inset:0;z-index:0;transition:transform 0.8s ease-out; }
+    .video-bg video { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center center;transition:opacity 1.2s ease-in-out;opacity:0;will-change:opacity; }
+    @media(max-width:768px){
+      .video-bg video#vid-b{display:none;}
+      #grain-canvas{display:none;}
+    }
+    .grid-overlay { position:fixed;inset:0;z-index:1;pointer-events:none;background-image:radial-gradient(circle,rgba(246,231,15,0.18) 1px,transparent 1px);background-size:6px 6px; }
+    #grain-canvas { position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0.55;mix-blend-mode:screen; }
+    .dark-overlay { position:fixed;inset:0;z-index:1;pointer-events:none;background:rgba(0,0,0,0.45); }
+    .vignette { position:fixed;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 35%,rgba(0,0,0,0.72) 100%); }
+    .hero { position:relative;width:100%;height:100vh;overflow:hidden;z-index:4; }
+    .marquee-wrap { position:absolute;inset-x:0;top:0;padding-top:22px;overflow:hidden;z-index:10; }
+    .marquee-track { display:flex;width:max-content;gap:0;animation:marquee 40s linear infinite; }
+    .marquee-track span { font-size:12px;color:var(--yellow);white-space:nowrap;font-weight:400;letter-spacing:0.03em;opacity:0.85; }
+    @keyframes marquee { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+    .audio-player { position:absolute;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:20px;z-index:10; }
+    @media(min-width:768px){.audio-player{right:32px;top:96px;transform:none;flex-direction:row;gap:20px;}}
+    .audio-player button { background:none;border:none;cursor:pointer;color:var(--yellow);padding:0;display:flex;align-items:center;transition:color 0.3s,transform 0.3s,filter 0.3s;outline:none;opacity:0.85; }
+    .audio-player button:hover { color:var(--yellow-soft);transform:scale(1.25);filter:drop-shadow(0 0 20px var(--yellow-glow));opacity:1; }
+    .audio-player button.waiting { animation:ap-pulse 2s ease-in-out infinite; }
+    @keyframes ap-pulse { 0%,100%{filter:drop-shadow(0 0 4px rgba(246,231,15,0.2));} 50%{filter:drop-shadow(0 0 16px var(--yellow-glow));transform:scale(1.15);} }
+    .sound-bars { display:inline-flex;align-items:flex-end;gap:2px;height:14px; }
+    .sound-bars span { display:inline-block;width:2px;background:var(--yellow);border-radius:1px;animation:soundbar 1.1s ease-in-out infinite; }
+    .sound-bars span:nth-child(1){animation-delay:0s;height:40%;} .sound-bars span:nth-child(2){animation-delay:0.2s;height:75%;}
+    .sound-bars span:nth-child(3){animation-delay:0.4s;height:50%;} .sound-bars span:nth-child(4){animation-delay:0.6s;height:85%;}
+    @keyframes soundbar { 0%,100%{transform:scaleY(0.3);} 50%{transform:scaleY(1);} }
+    .social-icons { position:absolute;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:20px;z-index:10; }
+    @media(min-width:768px){.social-icons{left:32px;right:auto;top:96px;transform:none;flex-direction:row;gap:20px;}}
+    .social-icons a { color:var(--yellow);transition:color 0.3s,transform 0.3s,filter 0.3s;display:flex;opacity:0.85;position:relative; }
+    .social-icons a:hover { color:var(--yellow-soft);transform:scale(1.25);filter:drop-shadow(0 0 20px var(--yellow-glow));opacity:1; }
+    .social-icons a::after { content:attr(data-tip);position:absolute;left:50%;transform:translateX(-50%);bottom:-28px;font-size:10px;color:var(--yellow);background:rgba(0,0,0,0.8);padding:3px 8px;border-radius:4px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.2s;letter-spacing:0.04em;border:1px solid rgba(246,231,15,0.15); }
+    .social-icons a:hover::after { opacity:1; }
+    @media(min-width:768px){.social-icons a::after{bottom:auto;top:-28px;}}
+    .bottom-bar { position:absolute;inset-x:0;bottom:0;display:flex;flex-direction:column;padding:0 16px 32px;gap:12px;z-index:10; }
+    @media(min-width:768px){.bottom-bar{flex-direction:row;align-items:flex-end;justify-content:space-between;padding:0 64px 48px;}}
+    .bottom-title { font-size:26px;font-weight:400;color:var(--yellow);letter-spacing:-0.02em;cursor:pointer;transition:color 0.4s,text-shadow 0.4s,transform 0.3s;text-shadow:0 0 12px rgba(246,231,15,0.3);animation:title-breathe 3s ease-in-out infinite;user-select:none; }
+    @media(min-width:768px){.bottom-title{font-size:32px;width:30%;}}
+    @media(max-width:768px){
+      .social-icons{position:fixed;left:14px;right:auto;top:52px;bottom:auto;transform:none;flex-direction:column;gap:16px;z-index:20;}
+      .social-icons a::after{left:auto;right:auto;bottom:auto;top:50%;left:calc(100% + 8px);transform:translateY(-50%);}
+      .audio-player{position:fixed;top:52px;right:14px;left:auto;transform:none;flex-direction:column;gap:14px;z-index:20;}
+      .bottom-bar{padding:0 16px 32px;gap:8px;}
+      .bottom-title{font-size:22px;text-align:center;width:100%;}
+    }
+    @media(max-width:480px){
+      .marquee-track span{font-size:10px;}
+      .social-icons{left:12px;top:48px;gap:14px;}
+      .social-icons a svg{width:20px;height:20px;}
+      .social-icons a{padding:6px;background:rgba(0,0,0,.35);border-radius:50%;backdrop-filter:blur(6px);}
+      .bottom-bar{padding:0 12px 28px;gap:8px;}
+      .bottom-title{font-size:18px;text-align:center;width:100%;}
+      .center-dots{margin-left:6px;gap:3px;}
+      .center-dots span{width:3px;height:3px;}
+      .audio-player{top:48px;right:12px;gap:12px;}
+      .audio-player button svg{width:20px;height:20px;}
+      .audio-player button{padding:6px;background:rgba(0,0,0,.35);border-radius:50%;backdrop-filter:blur(6px);}
+    }
+    .bottom-title:hover { color:var(--yellow-soft);text-shadow:0 0 32px var(--yellow-glow),0 0 60px rgba(246,231,15,0.2);transform:scale(1.03); }
+    .bottom-title.flash { animation:title-flash 0.5s ease-out; }
+    @keyframes title-breathe { 0%,100%{text-shadow:0 0 10px rgba(246,231,15,0.25);} 50%{text-shadow:0 0 22px rgba(246,231,15,0.5),0 0 44px rgba(246,231,15,0.15);} }
+    @keyframes title-flash { 0%{color:#fff;text-shadow:0 0 40px var(--yellow),0 0 80px var(--yellow-glow);transform:scale(1.06);} 100%{color:var(--yellow);text-shadow:0 0 10px rgba(246,231,15,0.25);transform:scale(1);} }
+    .center-dots { display:inline-flex;gap:6px;pointer-events:none;margin-left:14px;vertical-align:middle; }
+    .center-dots span { display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--yellow-muted);animation:dot-wave 2.4s ease-in-out infinite;transition:background 0.3s; }
+    .center-dots span:nth-child(1){animation-delay:0s;} .center-dots span:nth-child(2){animation-delay:0.15s;} .center-dots span:nth-child(3){animation-delay:0.3s;}
+    .center-dots span:nth-child(4){animation-delay:0.45s;} .center-dots span:nth-child(5){animation-delay:0.6s;} .center-dots span:nth-child(6){animation-delay:0.75s;}
+    .center-dots span:nth-child(7){animation-delay:0.9s;} .center-dots span:nth-child(8){animation-delay:1.05s;} .center-dots span:nth-child(9){animation-delay:1.2s;}
+    .center-dots span:nth-child(10){animation-delay:1.35s;} .center-dots span:nth-child(11){animation-delay:1.5s;} .center-dots span:nth-child(12){animation-delay:1.65s;}
+    @keyframes dot-wave { 0%,100%{opacity:0.25;transform:scale(0.7);box-shadow:none;} 50%{opacity:1;transform:scale(1.4);box-shadow:0 0 8px var(--yellow-glow),0 0 16px rgba(246,231,15,0.2);background:var(--yellow);} }
+    .side-badge { position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:20; }
+    .side-badge a { display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--black);color:var(--yellow);font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;text-decoration:none;writing-mode:vertical-rl;padding:16px 8px;gap:8px;border-left:1px solid rgba(246,231,15,0.2);transition:background 0.3s,color 0.3s; }
+    .side-badge a:hover { background:rgba(246,231,15,0.06);color:var(--yellow-soft); }
+    .badge-dot { width:6px;height:6px;border-radius:50%;background:var(--yellow);animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(0.7);} }
+    .enter-btn { position:absolute;bottom:120px;left:50%;transform:translateX(-50%);z-index:10;display:inline-flex;align-items:center;gap:8px;padding:12px 32px;font-family:'Martian Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--yellow);background:transparent;border:1px solid rgba(246,231,15,0.35);border-radius:8px;cursor:pointer;text-decoration:none;transition:all .3s; }
+    .enter-btn:hover { background:rgba(246,231,15,0.08);border-color:var(--yellow);box-shadow:0 0 24px var(--yellow-glow);text-shadow:0 0 12px var(--yellow-glow); }
+  </style>
+</head>
+<body>
+  <video id="bgm" autoplay loop playsinline preload="auto" src="../assets/1776570442.mp4" style="display:none"></video>
+  <div class="video-bg" id="videoBg">
+    <video id="vid-a" muted playsinline preload="auto" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"><source src="../assets/1776570442.mp4" type="video/mp4" /></video>
+    <video id="vid-b" muted playsinline preload="none"><source src="../assets/1776570442.mp4" type="video/mp4" /></video>
+  </div>
+  <div class="dark-overlay"></div>
+  <div class="grid-overlay"></div>
+  <canvas id="grain-canvas"></canvas>
+  <div class="vignette"></div>
+  <div class="hero">
+    <div class="marquee-wrap"><div class="marquee-track">
+      <span>Farmer Agent &middot; The Ultimate Yield Harvester on BSC Chain &middot; scouting fields &middot; planting &amp; staking &middot; harvest season &middot;&nbsp;</span><span>Farmer Agent &middot; The Ultimate Yield Harvester on BSC Chain &middot; scouting fields &middot; planting &amp; staking &middot; harvest season &middot;&nbsp;</span><span>Farmer Agent &middot; The Ultimate Yield Harvester on BSC Chain &middot; scouting fields &middot; planting &amp; staking &middot; harvest season &middot;&nbsp;</span><span>Farmer Agent &middot; The Ultimate Yield Harvester on BSC Chain &middot; scouting fields &middot; planting &amp; staking &middot; harvest season &middot;&nbsp;</span><span>Farmer Agent &middot; The Ultimate Yield Harvester on BSC Chain &middot; scouting fields &middot; planting &amp; staking &middot; harvest season &middot;&nbsp;</span><span>Farmer Agent &middot; The Ultimate Yield Harvester on BSC Chain &middot; scouting fields &middot; planting &amp; staking &middot; harvest season &middot;&nbsp;</span>
+    </div></div>
+    <div class="audio-player" id="audioPlayer">
+      <button id="ap-play" class="waiting" aria-label="Play/Pause"><svg id="ap-icon-play" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><svg id="ap-icon-pause" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button>
+      <button id="ap-mute" aria-label="Mute/Unmute"><svg id="ap-icon-vol" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg><svg id="ap-icon-muted" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></button>
+    </div>
+    <div class="social-icons">
+      <a href="https://github.com/FarmerAgentbsc" target="_blank" rel="noopener noreferrer" aria-label="GitHub" data-tip="GitHub"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg></a>
+      <a href="https://x.com/elizaok_bsc" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter" data-tip="X / Twitter"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg></a>
+      <a href="dashboard.html" aria-label="The Barn" data-tip="The Barn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></a>
+      <a href="cloud/agents.html" id="landing-cloud-btn" aria-label="TractorCloud" data-tip="TractorCloud" style="cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></a>
+    </div>
+    <div class="bottom-bar">
+      <a class="enter-btn" href="../index.html">中文版</a>
+      <div class="bottom-title" id="bottomTitle"><span id="bottomText">The Farm Gate</span><span class="center-dots"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></div>
+    </div>
+  </div>
+  <div class="side-badge"><a href="dashboard.html"><div class="badge-dot"></div><span>FARM</span><span>GATE</span></a></div>
+  <script>
+    var _isMobileDevice = window.innerWidth <= 768;
+    (function(){
+      if (_isMobileDevice) return;
+      var c=document.getElementById('grain-canvas'),x=c.getContext('2d'),W,H;function r(){W=c.width=innerWidth;H=c.height=innerHeight;}addEventListener('resize',r);r();function d(){var img=x.createImageData(W,H),dt=img.data;for(var i=0;i<dt.length;i+=4){var v=(Math.random()*255)|0;dt[i]=v;dt[i+1]=(v*0.88)|0;dt[i+2]=0;dt[i+3]=Math.random()<0.35?28:0;}x.putImageData(img,0,0);requestAnimationFrame(d);}d();
+    })();
+    (function(){
+      var a=document.getElementById('vid-a'),b=document.getElementById('vid-b');
+      if (_isMobileDevice) {
+        a.style.opacity='1';
+        a.setAttribute('loop','');
+        a.play().catch(function(){
+          document.addEventListener('touchstart',function h(){a.play().catch(function(){});document.removeEventListener('touchstart',h);},{once:true});
+        });
+        return;
+      }
+      var CF=1.8,act=a,stb=b;function swap(){stb.currentTime=0;stb.play();stb.style.opacity='1';act.style.opacity='0';setTimeout(function(){act.pause();act.currentTime=0;var t=act;act=stb;stb=t;},1300);}function tick(){if(act.duration&&!isNaN(act.duration)){if(act.duration-act.currentTime<=CF&&stb.paused)swap();}requestAnimationFrame(tick);}a.style.opacity='1';a.play().catch(function(){});b.load();requestAnimationFrame(tick);
+    })();
+    var vbg=document.getElementById('videoBg'),px=0,py=0,vs=1.15;var isMobile=window.innerWidth<=768;function apV(){if(vbg&&!isMobile)vbg.style.transform='scale('+vs+') translate('+px+'px,'+py+'px)';}if(!isMobile){document.addEventListener('mousemove',function(e){var cx=innerWidth/2,cy=innerHeight/2;px=(e.clientX-cx)/cx*-14;py=(e.clientY-cy)/cy*-9;apV();});addEventListener('wheel',function(e){e.preventDefault();vs=Math.min(Math.max(vs+e.deltaY*0.001,1.1),1.5);apV();},{passive:false});}
+    (function(){
+      var a=document.getElementById('bgm');a.volume=0.35;
+      var playing=false,muted=false,unlocked=false,userStopped=false;
+      var pb=document.getElementById('ap-play'),mb=document.getElementById('ap-mute');
+      var iP=document.getElementById('ap-icon-play'),iPa=document.getElementById('ap-icon-pause');
+      var iV=document.getElementById('ap-icon-vol'),iM=document.getElementById('ap-icon-muted');
+      function u(){
+        iP.style.display=playing?'none':'block';iPa.style.display=playing?'block':'none';
+        iV.style.display=muted?'none':'block';iM.style.display=muted?'block':'none';
+        pb.classList.toggle('waiting',!unlocked&&!playing);
+      }
+      function startFresh(){
+        if(playing||userStopped)return;
+        var fresh=document.createElement('video');
+        fresh.src='../assets/1776570442.mp4';
+        fresh.loop=true;
+        fresh.preload='auto';
+        fresh.playsInline=true;
+        fresh.setAttribute('playsinline','');
+        fresh.style.display='none';
+        fresh.volume=0.35;
+        fresh.muted=muted;
+        fresh.play().then(function(){
+          a.pause();a.parentNode&&a.parentNode.removeChild(a);
+          document.body.appendChild(fresh);
+          a=fresh;playing=true;unlocked=true;cleanEvents();u();
+          a.addEventListener('ended',function(){a.currentTime=0;a.play();});
+        }).catch(function(){});
+      }
+      pb.addEventListener('click',function(e){
+        e.stopPropagation();
+        if(playing){a.pause();playing=false;userStopped=true;}
+        else{userStopped=false;startFresh();if(!playing){a.play().catch(function(){});playing=true;unlocked=true;}}
+        u();
+      });
+      mb.addEventListener('click',function(e){e.stopPropagation();muted=!muted;a.muted=muted;u();});
+      var evts=['click','touchstart','touchend','pointerdown','pointerup','keydown'];
+      function boot(){if(unlocked||userStopped)return;startFresh();}
+      function cleanEvents(){evts.forEach(function(e){document.removeEventListener(e,boot,true);});}
+      evts.forEach(function(e){document.addEventListener(e,boot,true);});
+      a.play().then(function(){playing=true;unlocked=true;cleanEvents();u();}).catch(function(){});
+      setTimeout(function(){if(!playing&&!userStopped)a.play().then(function(){playing=true;unlocked=true;cleanEvents();u();}).catch(function(){});},500);
+      u();
+    })();
+    /* Bottom title cycle */
+    (function(){
+      var titles=['The Farm Gate','APY Radar','Planting & Staking','Harvest Festival'];
+      var idx=0;
+      var wrap=document.getElementById('bottomTitle');
+      var txt=document.getElementById('bottomText');
+      if(!wrap||!txt)return;
+      var actx=null;
+      function playClick(){
+        if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+        var t=actx.currentTime;
+        var g1=actx.createGain();g1.connect(actx.destination);g1.gain.setValueAtTime(0.10,t);g1.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+        var o1=actx.createOscillator();o1.type='sawtooth';o1.frequency.setValueAtTime(2400,t);o1.frequency.exponentialRampToValueAtTime(200,t+0.15);o1.connect(g1);o1.start(t);o1.stop(t+0.16);
+        var g2=actx.createGain();g2.connect(actx.destination);g2.gain.setValueAtTime(0.15,t+0.12);g2.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+        var o2=actx.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(1400,t+0.12);o2.connect(g2);o2.start(t+0.12);o2.stop(t+0.22);
+        var g3=actx.createGain();g3.connect(actx.destination);g3.gain.setValueAtTime(0.08,t+0.14);g3.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+        var o3=actx.createOscillator();o3.type='sine';o3.frequency.setValueAtTime(2100,t+0.14);o3.connect(g3);o3.start(t+0.14);o3.stop(t+0.25);
+      }
+      wrap.addEventListener('click',function(){
+        idx=(idx+1)%titles.length;
+        wrap.classList.remove('flash');
+        void wrap.offsetWidth;
+        txt.textContent=titles[idx];
+        wrap.classList.add('flash');
+        playClick();
+      });
+    })();
+    /* ElizaCloud connect */
+    (function(){
+      function doFinalPollThenReload(sid,attempt){
+        attempt=attempt||0;
+        fetch('/api/eliza-cloud/hosted/poll?session='+encodeURIComponent(sid),{credentials:'same-origin'}).then(function(r){return r.json();}).catch(function(){return {};}).then(function(d){
+          if((d&&d.status==='authenticated')||attempt>=5){window.location.href='cloud/agents.html';return;}
+          setTimeout(function(){doFinalPollThenReload(sid,attempt+1);},1200);
+        });
+      }
+      function openCloudAuth(btn){
+        if(btn)btn.style.opacity='0.5';
+        fetch('/api/eliza-cloud/hosted/start',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){
+          if(!data.loginUrl){window.location.href='/auth/eliza-cloud?popup=1';return;}
+          var p=window.open(data.loginUrl,'elizacloud-auth','width=500,height=640,scrollbars=yes');
+          if(!p){window.location.href=data.loginUrl;return;}
+          if(data.mode==='cli-session'){var count=0,closed=false;var ti=setInterval(function(){count++;var c;try{c=p.closed;}catch(e){c=true;}if(c&&!closed){closed=true;clearInterval(ti);if(btn)btn.style.opacity='';doFinalPollThenReload(data.sessionId);return;}if(count>90){clearInterval(ti);if(btn)btn.style.opacity='';doFinalPollThenReload(data.sessionId);return;}fetch('/api/eliza-cloud/hosted/poll?session='+encodeURIComponent(data.sessionId),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(pd){if(pd.status==='authenticated'){clearInterval(ti);try{p.close();}catch(e){}window.location.href='cloud/agents.html';}}).catch(function(){});},1500);}else{var closeTi=setInterval(function(){try{if(p.closed){clearInterval(closeTi);window.location.href='cloud/agents.html';}}catch(e){}},800);}
+        }).catch(function(){window.location.href='/auth/eliza-cloud?popup=1';});
+      }
+      function openLocalTractorCloud(e){
+        if(e)e.preventDefault();
+        window.location.href='cloud/agents.html';
+      }
+      var cb=document.getElementById('landing-cloud-btn');
+      if(cb){cb.addEventListener('click',openLocalTractorCloud);}
+    })();
+  </script>
+</body>
+</html>

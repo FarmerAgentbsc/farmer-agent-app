@@ -1,0 +1,2729 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Farmer Agent | The Barn Dashboard</title>
+  <meta name="description" content="Farmer Agent's barn dashboard for field scouting, soil checks, planting controls, weather alerts, and commune operations." />
+  <link rel="icon" type="image/png" href="../assets/farmer-agent-logo.png" />
+  <link rel="apple-touch-icon" href="../assets/farmer-agent-logo.png" />
+  <meta property="og:title" content="Farmer Agent | The Barn Dashboard" />
+  <meta property="og:image" content="../assets/farmer-agent-logo.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Farmer Agent | The Barn Dashboard" />
+  <meta name="twitter:image" content="../assets/farmer-agent-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>/* ════════════════════════════════════════════════════════
+       Farmer Agent Control Interface
+       Inspired by: Hermes Control Interface layout
+       Left sidebar · Center grid panels · Right stats
+       JetBrains Mono · Black + Yellow + Green
+    ════════════════════════════════════════════════════════ */
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+    :root {
+      --bg:       #080808;
+      --panel:    #0f0f0f;
+      --panel2:   #111111;
+      --border:   #1c1c1c;
+      --border2:  #252525;
+      --yellow:   #F6E70F;
+      --yr:       246,231,15;
+      --green:    #39FF14;
+      --gr:       57,255,20;
+      --red:      #FF4444;
+      --white:    rgba(255,255,255,0.88);
+      --dim:      rgba(255,255,255,0.40);
+      --mute:     rgba(255,255,255,0.18);
+      --r:        7px;
+      --r-sm:     5px;
+      --dot-color: 255,255,255;
+    }
+    [data-theme="light"] {
+      --bg:       #f4f4f0;
+      --panel:    #ffffff;
+      --panel2:   #f8f8f5;
+      --border:   #e0dfd8;
+      --border2:  #d0cfca;
+      --yellow:   #b8a800;
+      --yr:       184,168,0;
+      --green:    #1a8f00;
+      --gr:       26,143,0;
+      --red:      #d43030;
+      --white:    rgba(20,20,18,0.88);
+      --dim:      rgba(20,20,18,0.50);
+      --mute:     rgba(20,20,18,0.22);
+      --dot-color: 20,20,18;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); }
+    body {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 13px; line-height: 1.5; color: var(--white);
+      -webkit-font-smoothing: antialiased;
+      transition: background .3s, color .3s;
+    }
+    html { scrollbar-width: none; }
+    html::-webkit-scrollbar { display: none; }
+    body { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    a { color: inherit; text-decoration: none; }
+
+    /* Canvas */
+    #dot-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* ─── LAYOUT ─────────────────────────────── */
+    .layout {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; height: 100vh;
+    }
+
+    /* ─── TOP BAR ────────────────────────────── */
+    .topbar {
+      flex-shrink: 0; height: 44px;
+      display: flex; align-items: center;
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 0 16px; gap: 12px; z-index: 100;
+      transition: background .3s, border-color .3s;
+    }
+    .topbar__nav { display: flex; gap: 6px; align-items: center; }
+    .tb-nav-btn {
+      font-family: inherit; font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 5px 14px; border-radius: var(--r-sm);
+      border: 1px solid var(--border2); background: transparent;
+      color: var(--dim); text-decoration: none; cursor: pointer; transition: all .18s;
+    }
+    .tb-nav-btn:hover { border-color: rgba(var(--yr),.6); color: var(--yellow); }
+    .tb-nav-btn--user { border-color: rgba(var(--yr),.5); color: var(--yellow); font-weight: 700; }
+    .tb-nav-btn--user:hover { background: rgba(var(--yr),.1); }
+    .tb-nav-btn--connect { border-color: rgba(var(--yr),.35); color: var(--yellow); }
+    .topbar__right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .topbar__time { font-size: 0.75rem; color: var(--dim); }
+    .tb-btn {
+      font-family: inherit; font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 5px 12px; border-radius: var(--r-sm);
+      border: 1px solid var(--border2); background: var(--panel2);
+      color: var(--dim); cursor: pointer; transition: all .18s; text-decoration: none; display: inline-flex; align-items: center;
+    }
+    .tb-btn svg { width: 15px; height: 15px; }
+    .tb-btn:hover { border-color: var(--border2); color: var(--white); background: var(--border); }
+    .tb-btn.live { border-color: rgba(var(--gr),.4); color: var(--green); background: rgba(var(--gr),.06); }
+    .tb-btn.primary { border-color: rgba(var(--yr),.4); color: var(--yellow); background: rgba(var(--yr),.06); }
+    .tb-btn.primary:hover { background: rgba(var(--yr),.14); box-shadow: 0 0 14px rgba(var(--yr),.18); }
+    #theme-toggle { font-size: 0.85rem; padding: 4px 10px; letter-spacing: 0; }
+
+    /* ─── CONTENT AREA ───────────────────────── */
+    .content-area { flex: 1; display: flex; overflow: hidden; }
+
+    /* ─── LEFT SIDEBAR ───────────────────────── */
+    .sidebar {
+      width: 230px; flex-shrink: 0;
+      background: rgba(8,8,8,0.97); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+      transition: background .3s, border-color .3s;
+    }
+
+    .sb-agent {
+      padding: 18px 16px 14px; border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .sb-agent__avatar {
+      width: 58px; height: 58px; border-radius: 14px;
+      border: 1.5px solid rgba(var(--yr),.35); margin: 0 auto 10px;
+      display: block; background: rgba(255,247,210,.96); padding: 6px; object-fit: contain;
+      box-shadow: 0 0 16px rgba(var(--yr),.18), 0 0 32px rgba(var(--yr),.06);
+      animation: sbAvatarGlow 3s ease-in-out infinite;
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .4s, border-color .3s;
+      cursor: pointer; position: relative;
+    }
+    .sb-agent__avatar:hover {
+      transform: translateY(-4px) scale(1.1);
+      box-shadow: 0 0 28px rgba(var(--yr),.4), 0 0 56px rgba(var(--yr),.14), 0 8px 20px rgba(0,0,0,.3);
+      border-color: rgba(var(--yr),.6);
+    }
+    @keyframes sbAvatarGlow {
+      0%, 100% { box-shadow: 0 0 14px rgba(var(--yr),.15), 0 0 28px rgba(var(--yr),.05); }
+      50% { box-shadow: 0 0 22px rgba(var(--yr),.28), 0 0 44px rgba(var(--yr),.1); }
+    }
+    .sb-agent__status {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 999px;
+      border: 1px solid rgba(var(--gr),.35); color: var(--green);
+      margin-bottom: 6px;
+    }
+    .sb-agent__status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: live-pulse 2s ease-in-out infinite; }
+    @keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .sb-agent__name { font-size: 0.92rem; font-weight: 700; color: var(--yellow); }
+    .sb-agent__role { font-size: 0.62rem; color: var(--dim); letter-spacing: 0.08em; margin-top: 3px; }
+    .sb-agent__addr { font-size: 0.58rem; color: var(--mute); margin-top: 5px; }
+    .sb-agent__bal  { font-size: 0.72rem; color: var(--white); margin-top: 4px; font-weight: 600; }
+
+    .sb-btns { padding: 12px 12px 10px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; }
+    .sb-action-btn {
+      flex: 1; font-family: inherit; font-size: 0.62rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 6px 6px; border-radius: var(--r-sm);
+      border: 1px solid var(--border2); background: var(--panel2);
+      color: var(--dim); cursor: pointer; transition: all .18s;
+    }
+    .sb-action-btn:hover { border-color: rgba(var(--yr),.35); color: var(--yellow); background: rgba(var(--yr),.05); }
+
+    .sb-section { padding: 12px 12px 10px; border-bottom: 1px solid var(--border); }
+    .sb-section__title { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mute); margin-bottom: 8px; }
+
+    .qa-btn {
+      display: flex; align-items: center; gap: 7px;
+      width: 100%; font-family: inherit; font-size: 0.72rem; font-weight: 500;
+      padding: 6px 10px; border-radius: var(--r-sm); border: 1px solid transparent;
+      background: none; color: var(--dim); cursor: pointer; transition: all .18s;
+      text-align: left; margin-bottom: 4px; letter-spacing: 0.04em;
+    }
+    .qa-btn:hover { background: var(--panel2); border-color: var(--border); color: var(--white); }
+    .qa-btn:last-child { margin-bottom: 0; }
+    .qa-btn__icon { font-size: 0.82rem; flex-shrink: 0; }
+
+    .sb-stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; font-size: 0.72rem; }
+    .sb-stat-row span { color: var(--dim); }
+    .sb-stat-row strong { color: var(--white); }
+    .sb-stat-row strong.y { color: var(--yellow); }
+    .sb-stat-row strong.g { color: var(--green); }
+
+    .recent-item {
+      padding: 7px 10px; border-radius: var(--r-sm); margin-bottom: 4px;
+      border: 1px solid transparent; cursor: pointer; transition: all .2s cubic-bezier(.4,0,.2,1);
+    }
+    .recent-item:hover { background: var(--panel2); border-color: var(--border); transform: translateX(3px); }
+    .recent-item__sym { font-size: 0.78rem; font-weight: 700; color: var(--yellow); }
+    .recent-item__meta { font-size: 0.62rem; color: var(--dim); margin-top: 2px; }
+
+    /* ─── MAIN CONTENT ───────────────────────── */
+    .main {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      display: flex; flex-direction: column; gap: 0;
+      padding: 12px; background: var(--bg);
+    }
+
+    /* Grid rows */
+    .panel-row { display: grid; gap: 10px; margin-bottom: 10px; }
+    .panel-row--3 { grid-template-columns: 1fr 1fr 1fr; }
+    .panel-row--2 { grid-template-columns: 1.4fr 1fr; }
+    .panel-row--1 { grid-template-columns: 1fr; }
+    .panel-row--2-3 { grid-template-columns: 2fr 1fr; }
+
+    /* Panel */
+    .panel {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: all .3s cubic-bezier(.4,0,.2,1);
+    }
+    .panel:hover {
+      border-color: rgba(var(--yr), .25);
+      box-shadow: 0 0 20px rgba(0,0,0,.3), 0 0 0 1px rgba(var(--yr), .08);
+      transform: translateY(-1px);
+    }
+    .panel__head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px; border-bottom: 1px solid var(--border);
+      background: var(--panel2); flex-shrink: 0;
+      transition: background .2s;
+    }
+    .panel:hover .panel__head { background: rgba(var(--yr), .04); }
+    .panel__title { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+    .panel__badge {
+      font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 999px; border: 1px solid; margin-left: auto;
+    }
+    .pb-green  { color: var(--green); border-color: rgba(var(--gr),.35); }
+    .pb-yellow { color: var(--yellow); border-color: rgba(var(--yr),.35); }
+    .pb-red    { color: var(--red); border-color: rgba(255,68,68,.35); animation: badge-alert 1.5s ease-in-out infinite; }
+    @keyframes badge-alert { 0%,100%{box-shadow:none;} 50%{box-shadow:0 0 8px rgba(255,68,68,.3);} }
+    .pb-dim    { color: var(--mute); border-color: var(--border2); }
+    .pb-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .pb-dot.g { background: var(--green); animation: live-pulse 2.5s infinite; }
+    .pb-dot.y { background: var(--yellow); }
+    .pb-dot.d { background: #333; }
+    .panel__body { padding: 12px; flex: 1; overflow: hidden; }
+    .panel__body--p0 { padding: 0; }
+
+    /* Monitor rows (like CPU/storage in Hermes) */
+    .mon-row { margin-bottom: 12px; }
+    .mon-row:last-child { margin-bottom: 0; }
+    .mon-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.72rem; }
+    .mon-label span { color: var(--dim); }
+    .mon-label strong { color: var(--white); }
+    .mon-label strong.y { color: var(--yellow); }
+    .mon-bar { height: 4px; background: #1a1a1a; border-radius: 2px; }
+    .mon-fill { height: 100%; border-radius: 2px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+    .mon-fill.y { background: linear-gradient(90deg, rgba(var(--yr),.4), var(--yellow)); }
+    .mon-fill.g { background: linear-gradient(90deg, rgba(var(--gr),.4), var(--green)); }
+    .mon-big { font-size: 1.5rem; font-weight: 800; color: var(--yellow); line-height: 1; margin-bottom: 3px; text-shadow: 0 0 12px rgba(var(--yr), .3); transition: transform .2s; }
+    .mon-big:hover { transform: scale(1.05); }
+    .mon-sub { font-size: 0.65rem; color: var(--dim); }
+
+    /* Scheduler-style rows */
+    .sched-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 0.78rem; }
+    .sched-row:last-child { border-bottom: none; }
+    .sched-row span { color: var(--dim); }
+    .sched-row strong { font-weight: 600; }
+    .sched-row strong.y { color: var(--yellow); }
+    .sched-row strong.g { color: var(--green); }
+    .sched-row strong.r { color: var(--red); }
+    .sched-row strong.w { color: var(--white); }
+
+    /* Avatar glow + hover float */
+    .sidebar-avatar {
+      width: 38px; height: 38px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+      border: 1px solid rgba(246,231,15,.2);
+      box-shadow: 0 0 14px rgba(246,231,15,.15), 0 0 28px rgba(246,231,15,.06);
+      animation: avatarBreath 3s ease-in-out infinite;
+      transition: transform .3s, box-shadow .4s;
+      cursor: pointer; position: relative;
+    }
+    .sidebar-avatar:hover {
+      transform: translateY(-3px) scale(1.08);
+      box-shadow: 0 0 24px rgba(246,231,15,.35), 0 0 48px rgba(246,231,15,.12), 0 4px 16px rgba(0,0,0,.3);
+    }
+    .sidebar-avatar::after {
+      content: ""; position: absolute; inset: -5px; border-radius: 14px;
+      border: 1px solid rgba(246,231,15,0); transition: border-color .4s; pointer-events: none;
+    }
+    .sidebar-avatar:hover::after { border-color: rgba(246,231,15,.2); }
+    .sidebar-avatar__image, .sidebar-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    @keyframes avatarBreath {
+      0%, 100% { box-shadow: 0 0 12px rgba(246,231,15,.12), 0 0 24px rgba(246,231,15,.04); }
+      50% { box-shadow: 0 0 20px rgba(246,231,15,.22), 0 0 36px rgba(246,231,15,.08); }
+    }
+
+    /* Token Explorer — compact tile grid */
+    .te-section { padding: 2px 0; }
+    .te-label { font-size: 0.58rem; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; padding: 4px 8px 3px; font-weight: 600; }
+    .te-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 3px; padding: 0 4px; }
+    .te-tile {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 6px 4px; border-radius: 6px; cursor: pointer;
+      background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.04);
+      transition: all .2s; text-decoration: none; position: relative; overflow: hidden;
+    }
+    .te-tile:hover { background: rgba(246,231,15,.06); border-color: rgba(246,231,15,.15); transform: translateY(-1px); }
+    .te-tile__name {
+      font-size: 0.65rem; font-weight: 700; color: var(--yellow);
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
+    }
+    .te-tile__score { font-size: 0.72rem; font-weight: 800; color: var(--white); line-height: 1; margin: 2px 0 1px; }
+    .te-tile__dot { font-size: 0.5rem; }
+    .te-tile--buy .te-tile__score { color: var(--green); }
+    .te-tile--watch .te-tile__score { color: var(--yellow); }
+    .te-tile--held { border-color: rgba(34,197,94,.15); background: rgba(34,197,94,.04); }
+    .te-tile--held .te-tile__name { color: var(--green); }
+    .te-tile--held:hover { border-color: rgba(34,197,94,.3); background: rgba(34,197,94,.08); }
+
+    /* Terminal / live feed */
+    .term-body { font-size: 0.75rem; padding: 10px; overflow-y: auto; max-height: 220px; }
+    .term-line { display: flex; gap: 8px; padding: 2px 0; }
+    .term-line .ts  { color: var(--mute); flex-shrink: 0; font-size: 0.65rem; }
+    .term-line .tag { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 1px 6px; border-radius: 2px; flex-shrink: 0; }
+    .tag-info { background: rgba(0,229,255,.15); color: #00E5FF; }
+    .tag-ok   { background: rgba(var(--gr),.15); color: var(--green); }
+    .tag-warn { background: rgba(255,152,0,.15); color: #FF9800; }
+    .tag-err  { background: rgba(255,68,68,.15); color: var(--red); }
+    .term-line .msg { color: var(--dim); }
+    .term-line .msg .hi { color: var(--yellow); }
+    .term-line .msg .ok { color: var(--green); }
+    .prompt-line { display: flex; gap: 7px; align-items: center; padding: 3px 0; }
+    .prompt-line .pr { color: var(--yellow); }
+    .prompt-line .cmd { color: var(--white); }
+    .cursor { display: inline-block; width: 8px; height: 14px; background: var(--yellow); animation: blink-cur .8s step-end infinite; }
+    @keyframes blink-cur { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Candidates inside panel */
+    .cand-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 4px; border-bottom: 1px solid rgba(255,255,255,.04);
+      font-size: 0.78rem; cursor: pointer; transition: background .15s, padding-left .15s;
+      border-radius: 4px;
+    }
+    .cand-row:last-child { border-bottom: none; }
+    .cand-row:hover { background: var(--panel2); padding-left: 6px; }
+    .cand-row__rank { color: var(--mute); width: 18px; flex-shrink: 0; font-size: 0.68rem; font-weight: 600; text-align: center; }
+    .cand-row__sym { color: var(--yellow); font-weight: 700; max-width: 80px; min-width: 0; flex-shrink: 1; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cand-row__sym a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cand-row__score { color: var(--white); width: 50px; flex-shrink: 0; font-weight: 600; font-size: 0.72rem; }
+    .cand-row__pill {
+      font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 8px; border: 1px solid; border-radius: 999px; font-weight: 600;
+    }
+    .tone-hot  { color:#F6E70F; border-color:rgba(246,231,15,.4); background:rgba(246,231,15,.06); }
+    .tone-warm { color:#FFB700; border-color:rgba(255,183,0,.35); background:rgba(255,183,0,.04); }
+    .tone-cool { color:rgba(255,255,255,.55); border-color:rgba(255,255,255,.18); }
+    .tone-cold { color:rgba(255,255,255,.28); border-color:rgba(255,255,255,.12); }
+    .cand-row__meta { color: var(--mute); font-size: 0.68rem; margin-left: auto; font-weight: 500; }
+    .cand-link { color: var(--yellow); }
+    .cand-link:hover { text-decoration: underline; }
+
+    /* Score bar inline */
+    .mini-bar { width: 54px; height: 3px; background: #1a1a1a; border-radius: 1px; flex-shrink: 0; }
+    .mini-fill { height: 100%; background: var(--yellow); border-radius: 1px; }
+
+    /* ─── RIGHT ASIDE ────────────────────────── */
+    .aside {
+      width: 220px; flex-shrink: 0;
+      background: rgba(8,8,8,0.97); border-left: 1px solid var(--border);
+      overflow-y: auto; overflow-x: hidden;
+      padding: 12px 10px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .aside-block {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 12px;
+    }
+    .aside-title {
+      font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--yellow); opacity: 0.7;
+      padding-bottom: 7px; border-bottom: 1px solid var(--border); margin-bottom: 9px;
+    }
+    .aside-stat {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 4px 0; font-size: 0.72rem; gap: 5px;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+    }
+    .aside-stat:last-child { border-bottom: none; }
+    .aside-stat span { color: var(--dim); flex-shrink: 0; white-space: nowrap; }
+    .aside-stat strong { font-weight: 600; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; }
+    .aside-stat strong.y { color: var(--yellow); }
+    .aside-stat strong.g { color: var(--green); }
+    .aside-stat strong.w { color: var(--white); }
+    .aside-big { font-size: 1.8rem; font-weight: 800; color: var(--yellow); line-height: 1; margin-bottom: 3px; }
+    .aside-sub { font-size: 0.62rem; color: var(--dim); margin-bottom: 9px; }
+
+    /* Aside token entry */
+    .aside-token { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 0.72rem; }
+    .aside-token:last-child { border-bottom: none; }
+    .aside-token__sym { color: var(--yellow); font-weight: 700; font-size: 0.82rem; }
+    .aside-token__row { display: flex; justify-content: space-between; align-items: baseline; gap: 5px; }
+    .aside-token__score { color: var(--white); font-size: 0.7rem; }
+    .aside-token__rec { color: var(--dim); font-size: 0.62rem; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Cloud CTA card — matches aside-block style */
+    .cloud-card { border-color: rgba(0,199,210,.18) !important; transition: border-color .3s, box-shadow .3s; }
+    .cloud-card:hover { border-color: rgba(0,199,210,.4) !important; box-shadow: 0 2px 16px rgba(0,199,210,.1); }
+    .cloud-card__banner { border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+    .cloud-card__img { width: 100%; height: 70px; object-fit: cover; display: block; border-radius: 6px; }
+    .cloud-card__title { font-size: 0.72rem; font-weight: 700; color: #00C7D2; letter-spacing: .04em; margin-bottom: 2px; }
+    .cloud-card__sub { font-size: 0.55rem; color: var(--dim); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    .cloud-card__features { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+    .cloud-card__feat { font-size: 0.6rem; color: rgba(245,245,240,.6); }
+    .cloud-card__btn { display: block; text-align: center; font-family: inherit; font-size: 0.58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; padding: 7px 10px; border-radius: 6px; background: rgba(0,199,210,.1); border: 1px solid rgba(0,199,210,.25); color: #00C7D2; transition: all .25s; }
+    .cloud-card__btn:hover { background: rgba(0,199,210,.2); border-color: #00C7D2; color: #fff; text-decoration: none; }
+    [data-theme="light"] .cloud-card { border-color: rgba(0,199,210,.15) !important; }
+    [data-theme="light"] .cloud-card__feat { color: rgba(0,0,0,.5); }
+    [data-theme="light"] .cloud-card__btn { background: rgba(0,199,210,.06); color: #0097a0; }
+
+    /* ElizaCloud CTA in main content */
+    .cloud-main-cta { margin-top: 16px; }
+    .cloud-main-cta__inner {
+      display: flex; align-items: stretch; gap: 0;
+      background: linear-gradient(135deg, rgba(0,199,210,.06), rgba(139,92,246,.04), var(--panel));
+      border: 1px solid rgba(0,199,210,.2); border-radius: var(--r);
+      overflow: hidden; transition: border-color .3s, box-shadow .3s, transform .3s;
+    }
+    .cloud-main-cta__inner:hover { border-color: rgba(0,199,210,.45); box-shadow: 0 4px 24px rgba(0,199,210,.12), 0 0 40px rgba(139,92,246,.06); transform: translateY(-2px); }
+    .cloud-main-cta__img-wrap { width: 200px; flex-shrink: 0; overflow: hidden; }
+    .cloud-main-cta__img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
+    .cloud-main-cta__inner:hover .cloud-main-cta__img { transform: scale(1.05); }
+    .cloud-main-cta__content { padding: 20px 24px; display: flex; flex-direction: column; justify-content: center; gap: 4px; flex: 1; }
+    .cloud-main-cta__title { font-size: 1.1rem; font-weight: 800; color: #00C7D2; letter-spacing: .02em; }
+    .cloud-main-cta__sub { font-size: 0.65rem; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+    .cloud-main-cta__features { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .cloud-main-cta__features span { font-size: 0.65rem; color: rgba(245,245,240,.6); white-space: nowrap; }
+    .cloud-main-cta__btn {
+      display: inline-block; text-align: center; font-family: inherit; font-size: 0.65rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+      padding: 10px 20px; border-radius: 8px; width: fit-content;
+      background: linear-gradient(135deg, rgba(0,199,210,.15), rgba(139,92,246,.1));
+      border: 1px solid rgba(0,199,210,.3); color: #00C7D2; transition: all .25s;
+    }
+    .cloud-main-cta__btn:hover { background: linear-gradient(135deg, rgba(0,199,210,.25), rgba(139,92,246,.15)); border-color: #00C7D2; box-shadow: 0 0 20px rgba(0,199,210,.2); color: #fff; text-decoration: none; }
+    @media (max-width: 600px) {
+      .cloud-main-cta__inner { flex-direction: column; }
+      .cloud-main-cta__img-wrap { width: 100%; height: 100px; }
+      .cloud-main-cta__content { padding: 14px 16px; }
+    }
+    [data-theme="light"] .cloud-main-cta__inner { background: linear-gradient(135deg, rgba(0,199,210,.04), rgba(139,92,246,.03), #fff); }
+    [data-theme="light"] .cloud-main-cta__features span { color: rgba(0,0,0,.5); }
+    [data-theme="light"] .cloud-main-cta__btn { background: rgba(0,199,210,.08); color: #0097a0; }
+
+    /* Progress rows (for detail accordions) */
+    .progress-row { display: flex; align-items: center; gap: 9px; padding: 4px 0; }
+    .progress-row span { width: 90px; flex-shrink: 0; color: var(--dim); font-size: 0.72rem; }
+    .progress-bar { flex: 1; height: 3px; background: #1a1a1a; border-radius: 1px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, rgba(var(--yr),.4), var(--yellow)); border-radius: 1px; transition: width .8s; }
+    .progress-val { width: 42px; text-align: right; color: var(--dim); font-size: 0.7rem; flex-shrink: 0; }
+
+    /* Accordion (within panel or standalone) */
+    .accord-panel { margin-top: 8px; }
+    details.panel-accord { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 6px; overflow: hidden; }
+    summary.panel-accord__sum {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; cursor: pointer; list-style: none;
+      background: var(--panel2); transition: all .2s;
+    }
+    summary.panel-accord__sum:hover { background: #161616; border-left: 2px solid var(--yellow); padding-left: 10px; }
+    .panel-accord__sum::-webkit-details-marker { display: none; }
+    .panel-accord__title { font-size: 0.75rem; font-weight: 700; color: var(--white); }
+    .panel-accord__meta  { font-size: 0.65rem; color: var(--dim); margin-left: auto; }
+    .panel-accord__arr   { font-size: 0.65rem; color: var(--mute); transition: transform .2s; }
+    details.panel-accord[open] .panel-accord__arr { transform: rotate(180deg); }
+    .panel-accord__body  { padding: 12px; border-top: 1px solid var(--border); }
+
+    /* Metric grid */
+    .metric-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .metric-card { padding: 10px 12px; background: var(--panel2); border: 1px solid var(--border); border-radius: var(--r-sm); transition: all .2s; }
+    .metric-card:hover { border-color: rgba(var(--yr),.3); background: rgba(var(--yr),.04); transform: translateY(-1px); }
+    .metric-card__label { font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); margin-bottom: 4px; }
+    .metric-card__val { font-size: 1.05rem; font-weight: 700; color: var(--yellow); transition: text-shadow .2s; }
+    .metric-card:hover .metric-card__val { text-shadow: 0 0 10px rgba(var(--yr),.4); }
+    .metric-card__desc { font-size: 0.58rem; color: var(--dim); line-height: 1.3; margin-top: 2px; }
+
+    .status-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 0.65rem; }
+    .status-row:last-child { border-bottom: none; }
+    .status-row span { color: var(--dim); }
+    .status-row strong { color: var(--white); }
+    .watchlist-link { color: var(--yellow); }
+
+    .candidate-card { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .candidate-card:last-child { border-bottom: none; }
+    .candidate-card__meta { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .candidate-rank { font-size: 0.48rem; color: var(--dim); }
+    .candidate-link { font-size: 0.82rem; font-weight: 700; color: var(--yellow); }
+    .candidate-subtitle { font-size: 0.58rem; color: var(--dim); margin: 1px 0 5px; }
+    .candidate-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 0.58rem; }
+    .candidate-stats div { display: flex; justify-content: space-between; }
+    .candidate-stats span { color: var(--dim); }
+    .candidate-thesis { font-size: 0.65rem; color: var(--dim); padding: 5px 0; }
+    .goo-card { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .goo-card:last-child { border-bottom: none; }
+    .pill { font-size: 0.44rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 1px 5px; border: 1px solid; border-radius: 999px; }
+
+    .usage-stack { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+    .usage-row { display: flex; align-items: center; gap: 6px; }
+    .usage-label { width: 48px; color: var(--dim); font-size: 0.58rem; }
+    .usage-bar { flex: 1; height: 2px; background: #1a1a1a; border-radius: 1px; }
+    .usage-fill { height: 100%; background: var(--yellow); border-radius: 1px; }
+    .usage-val { width: 22px; text-align: right; color: var(--dim); font-size: 0.55rem; }
+
+    /* Modal */
+    .h-modal-backdrop { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.94); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .h-modal-backdrop.hidden { display: none; }
+    .h-modal { background: var(--panel); border: 1px solid var(--border2); border-radius: var(--r); width: 100%; max-width: 960px; max-height: 88vh; overflow-y: auto; scrollbar-width: thin; }
+    .h-modal__header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel2); z-index: 1; }
+    .h-modal__title { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--yellow); }
+    .h-modal__close { background: none; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--dim); font-family: inherit; font-size: 0.58rem; padding: 3px 9px; cursor: pointer; transition: all .18s; }
+    .h-modal__close:hover { border-color: #333; color: var(--white); }
+
+    /* Cloud popup */
+    .h-cloud-popup { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; }
+    .h-cloud-popup.hidden { display: none; }
+    .h-cloud-popup__inner { background: var(--panel); border: 1px solid var(--border2); border-radius: var(--r); padding: 28px; width: 380px; max-width: 95vw; }
+    .h-cloud-popup__title { font-size: 1rem; font-weight: 700; color: var(--yellow); margin-bottom: 10px; }
+    .h-cloud-popup p { font-size: 0.75rem; color: var(--dim); line-height: 1.7; }
+    .h-cloud-popup__close { float: right; background: none; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--dim); font-family: inherit; font-size: 0.58rem; padding: 3px 8px; cursor: pointer; margin-bottom: 10px; }
+
+    .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .split-h { font-size: 0.5rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mute); padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+
+    .np-footer { padding: 10px 14px; font-size: 0.48rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
+
+    .status-panel { display: flex; flex-direction: column; }
+
+    @media (max-width: 1400px) {
+      .aside { width: 200px; }
+    }
+    @media (max-width: 1100px) {
+      .panel-row--3 { grid-template-columns: 1fr 1fr; }
+      .aside { width: 185px; padding: 10px 8px; }
+    }
+    @media (max-width: 960px) {
+      .aside { display: none; }
+    }
+    @media (max-width: 860px) {
+      .sidebar { display: none; }
+      .mobile-agent-banner { display: flex !important; }
+      .mobile-cloud-strip { display: flex !important; }
+      .panel-row--3 { grid-template-columns: 1fr; }
+      .panel-row--2 { grid-template-columns: 1fr; }
+      .panel-row--2-3 { grid-template-columns: 1fr; }
+    }
+    .mobile-agent-banner {
+      display: none;
+      align-items: center; gap: 12px;
+      padding: 10px 14px;
+      background: var(--panel); border-bottom: 1px solid var(--border);
+    }
+    .mobile-agent-banner__avatar {
+      width: 36px; height: 36px; border-radius: 12px;
+      border: 1.5px solid rgba(var(--yr),.35);
+      background: rgba(255,247,210,.96); padding: 4px; object-fit: contain;
+      box-shadow: 0 0 12px rgba(var(--yr),.2);
+      flex-shrink: 0;
+    }
+    .mobile-agent-banner__info { flex: 1; min-width: 0; }
+    .mobile-agent-banner__name { font-size: 13px; font-weight: 700; color: var(--yellow); }
+    .mobile-agent-banner__role { font-size: 9px; color: var(--dim); letter-spacing: .06em; text-transform: uppercase; }
+    @media (max-width: 640px) {
+      .topbar { height: auto; min-height: 40px; flex-wrap: wrap; padding: 8px 10px; gap: 6px; }
+      .topbar__nav { order: 1; }
+      .topbar__right { order: 2; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+      .tb-btn { font-size: 0.58rem; padding: 4px 7px; letter-spacing: .06em; }
+      .tb-btn svg { width: 12px; height: 12px; }
+      .tb-nav-btn { font-size: 0.58rem; padding: 4px 8px; }
+      .topbar__time { font-size: 0.6rem; }
+      .main { padding: 10px 8px; }
+      .panel { border-radius: 10px; }
+      .panel__title { font-size: 0.6rem; }
+      .feature-card { padding: 10px; }
+      .feature-card__pct { font-size: 1.1rem; }
+      .feature-card__val { font-size: 0.72rem; }
+      .feature-card__label { font-size: 0.52rem; }
+      .split-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── ARENA PREVIEW ──────────────────── */
+    .arena-preview {
+      margin-top: 10px; padding: 14px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--r);
+    }
+    .arena-preview__head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .arena-preview__title {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--dim);
+    }
+    .arena-preview__link {
+      font-size: 0.6rem; color: var(--yellow); text-decoration: none;
+      letter-spacing: .06em; font-weight: 600;
+    }
+    .arena-preview__link:hover { text-decoration: underline; }
+    .arena-preview__desc {
+      margin: -4px 0 12px; font-size: 0.62rem; line-height: 1.6;
+      color: var(--mute); letter-spacing: .01em;
+    }
+    .arena-preview__desc strong { color: var(--yellow); font-weight: 600; }
+    .arena-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .arena-card {
+      background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.06);
+      border-radius: 10px; padding: 12px; cursor: pointer;
+      transition: all .2s; position: relative;
+    }
+    .arena-card:hover { border-color: rgba(255,255,255,.15); background: rgba(255,255,255,.04); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+    .arena-card--leader { border-color: rgba(var(--yr),.25); background: rgba(var(--yr),.03); }
+    .arena-card--leader:hover { border-color: rgba(var(--yr),.5); box-shadow: 0 4px 20px rgba(var(--yr),.15); }
+    .arena-card__rank {
+      position: absolute; top: 8px; right: 10px;
+      font-size: 0.6rem; font-weight: 800; color: var(--mute);
+      letter-spacing: .04em;
+    }
+    .arena-card--leader .arena-card__rank { color: var(--yellow); }
+    .arena-card__head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .arena-card__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .arena-card__name { font-size: 0.72rem; font-weight: 700; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .arena-card__badge {
+      font-size: 0.45rem; padding: 2px 6px; border-radius: 10px;
+      background: rgba(255,255,255,.06); color: var(--dim);
+      letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
+      white-space: nowrap;
+    }
+    .arena-card__pnl { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+    .arena-card__pnl.g { color: var(--green); }
+    .arena-card__pnl.r { color: #ef4444; }
+    .arena-card__stats {
+      display: flex; gap: 8px; font-size: 0.55rem; color: var(--dim);
+      margin-bottom: 8px;
+    }
+    .arena-card__bar { height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; margin-bottom: 4px; }
+    .arena-card__bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, rgba(var(--yr),.3), var(--yellow)); transition: width .8s; }
+    .arena-card__score { font-size: 0.52rem; color: var(--mute); letter-spacing: .04em; }
+    .arena-card__score strong { color: var(--dim); }
+    @media (max-width: 960px) { .arena-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px) {
+      .arena-preview { padding: 10px; margin-top: 8px; }
+      .arena-preview__title { font-size: 0.6rem; }
+      .arena-preview__desc { font-size: 0.54rem; margin-bottom: 10px; }
+      .arena-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .arena-card { padding: 10px; }
+      .arena-card__name { font-size: 0.62rem; }
+      .arena-card__pnl { font-size: 0.82rem; }
+      .arena-card__stats { font-size: 0.48rem; gap: 5px; }
+      .arena-card__badge { font-size: 0.4rem; }
+    }
+    @media (max-width: 400px) { .arena-grid { grid-template-columns: 1fr; } }
+    [data-theme="light"] .arena-card { background: rgba(0,0,0,.01); border-color: rgba(0,0,0,.06); }
+    [data-theme="light"] .arena-card:hover { background: rgba(0,0,0,.03); border-color: rgba(0,0,0,.12); }
+    [data-theme="light"] .arena-card--leader { background: rgba(var(--yr),.03); border-color: rgba(var(--yr),.15); }
+
+    /* ─── STATUS STRIP ─────────────────────── */
+    .status-strip {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+      padding: 8px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--r);
+    }
+    .ss-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 10px; border-radius: 20px;
+      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+      font-size: 0.6rem; color: var(--dim); text-decoration: none;
+      transition: all .2s; cursor: pointer;
+    }
+    .ss-chip:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); color: var(--white); transform: translateY(-1px); }
+    .ss-chip strong { color: var(--white); font-weight: 600; font-size: 0.6rem; }
+    .ss-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .ss-label { letter-spacing: .06em; text-transform: uppercase; font-weight: 500; }
+    .mobile-cloud-strip {
+      display: none; align-items: center; gap: 8px;
+      padding: 8px 14px; background: rgba(0,199,210,.04);
+      border-bottom: 1px solid rgba(0,199,210,.12);
+      font-size: 11px; color: var(--dim);
+    }
+    .mobile-cloud-strip__btn {
+      margin-left: auto; padding: 4px 12px; border-radius: 14px;
+      background: rgba(0,199,210,.1); border: 1px solid rgba(0,199,210,.25);
+      color: #00C7D2; font-size: 10px; font-weight: 600; text-decoration: none;
+      letter-spacing: .04em;
+    }
+    @media (max-width: 640px) {
+      .status-strip { gap: 3px; padding: 6px 8px; flex-wrap: wrap; }
+      .ss-chip { padding: 3px 7px; font-size: 0.5rem; border-radius: 14px; }
+      .ss-chip strong { font-size: 0.5rem; }
+      .ss-label { display: none; }
+      .ss-dot { width: 5px; height: 5px; }
+    }
+    @media (min-width: 641px) and (max-width: 860px) {
+      .status-strip { gap: 5px; }
+      .ss-chip { font-size: 0.55rem; }
+    }
+
+    /* ─── MOBILE ────────────────────────────── */
+    @media (max-width: 640px) {
+      html, body { overflow: auto; }
+      body { font-size: 12px; }
+      .layout { height: auto; min-height: 100vh; }
+      .topbar {
+        height: auto; min-height: 44px; flex-wrap: wrap;
+        padding: 8px 10px; gap: 6px;
+      }
+      .topbar__nav { order: 2; width: 100%; }
+      .topbar__right { order: 1; width: 100%; justify-content: flex-end; flex-wrap: wrap; gap: 5px; }
+      .tb-nav-btn { font-size: 0.65rem; padding: 4px 10px; }
+      .tb-btn { font-size: 0.62rem; padding: 4px 8px; }
+      .content-area { flex-direction: column; overflow: visible; }
+      .main { padding: 8px; overflow: visible; }
+      .panel-row { gap: 8px; margin-bottom: 8px; }
+      .panel-row--3, .panel-row--2, .panel-row--2-3, .panel-row--1 { grid-template-columns: 1fr; }
+      .panel__head { padding: 8px 10px; }
+      .panel__title { font-size: 0.68rem; }
+      .panel__body { padding: 10px; }
+      .mon-big { font-size: 1.3rem; }
+      .aside-big { font-size: 1.4rem; }
+      .metric-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .metric-card { padding: 8px 10px; }
+      .metric-card__val { font-size: 0.9rem; }
+      .split-grid { grid-template-columns: 1fr; gap: 10px; }
+      .h-modal { max-width: 100%; max-height: 92vh; border-radius: 8px; }
+      .h-modal-backdrop { padding: 10px; }
+      .h-cloud-popup__inner { width: 100%; padding: 20px; }
+      .sched-row { font-size: 0.72rem; flex-wrap: wrap; gap: 2px; }
+      .cand-row { font-size: 0.7rem; flex-wrap: wrap; gap: 4px; }
+      .cand-row__meta { width: 100%; text-align: left; }
+      .term-body { max-height: 180px; font-size: 0.62rem; overflow-x: auto; }
+      .term-line .msg { word-break: break-all; }
+      .prompt-line { font-size: 0.6rem; }
+      .te-grid { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+      .te-tile { padding: 6px 4px; }
+      .te-tile__name { font-size: 0.55rem; }
+      .te-tile__score { font-size: 0.7rem; }
+      .np-footer { flex-wrap: wrap; gap: 4px; font-size: 0.44rem; }
+      .cloud-card__img { height: 50px; }
+      .cloud-card__feat { font-size: 0.52rem; }
+      .cloud-card__btn { font-size: 0.52rem; padding: 5px 8px; }
+    }
+
+    @media (max-width: 400px) {
+      .topbar { padding: 6px 8px; }
+      .tb-nav-btn { font-size: 0.58rem; padding: 3px 8px; }
+      .tb-btn { font-size: 0.55rem; padding: 3px 6px; }
+      .main { padding: 6px; }
+      .panel-row { gap: 6px; margin-bottom: 6px; }
+      .panel__head { padding: 7px 8px; }
+      .panel__body { padding: 8px; }
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+      .te-grid { grid-template-columns: repeat(3, 1fr); }
+      .term-body { max-height: 150px; font-size: 0.58rem; }
+      .term-line .tag { font-size: 0.48rem; padding: 1px 3px; }
+      .ss-chip { padding: 2px 6px; font-size: 0.46rem; }
+      .ss-chip strong { font-size: 0.46rem; }
+    }
+
+    /* ─── Extra mobile polish ───────────────── */
+    @media (max-width: 640px) {
+      .panel-accord__sum { font-size: 0.7rem; padding: 8px 10px; }
+      .panel-accord__meta { display: none; }
+      .panel-accord__body { padding: 8px; }
+      .status-row { font-size: 0.68rem; flex-wrap: wrap; }
+      .status-row span { width: 100%; font-size: 0.6rem; }
+      .candidate-stats { grid-template-columns: 1fr 1fr; gap: 4px; }
+      .candidate-stats div span { font-size: 0.5rem; }
+      .candidate-stats div strong { font-size: 0.62rem; word-break: break-all; }
+      .candidate-card { padding: 10px; }
+      .candidate-card h3 { font-size: 0.72rem; }
+      .candidate-card__meta { gap: 4px; }
+      .candidate-subtitle { font-size: 0.55rem; }
+      .candidate-rank { font-size: 0.6rem; min-width: 18px; }
+      .pill { font-size: 0.5rem; padding: 2px 6px; }
+      #notif-toast-area { max-width: 220px; right: 6px; top: 6px; }
+      .nt-body strong { font-size: 9px; }
+      .aside-block { padding: 8px; }
+      .aside-title { font-size: 0.6rem; }
+      .evt-timeline { max-height: 120px; }
+      .nt-detail { font-size: 8px; }
+      .nt-toast { padding: 5px 8px; gap: 4px; }
+      .nt-icon { font-size: 11px; }
+      .sb-section { padding: 8px; }
+      .feature-card__percent { font-size: 1.2rem; }
+      .feature-card__label { font-size: 0.6rem; }
+      .candidate-thesis { font-size: 0.54rem !important; line-height: 1.5; }
+      .split-h { font-size: 0.6rem; }
+      .metric { padding: 6px; }
+      .metric span { font-size: 0.48rem; }
+      .metric strong { font-size: 0.62rem; word-break: break-all; }
+      .mobile-agent-banner { padding: 8px 10px; gap: 8px; }
+      .mobile-agent-banner__avatar { width: 30px; height: 30px; }
+      .mobile-agent-banner__name { font-size: 12px; }
+      .mobile-cloud-strip { padding: 6px 10px; font-size: 10px; }
+      .mobile-cloud-strip__btn { padding: 3px 10px; font-size: 9px; }
+      .accord-panel { gap: 6px; }
+    }
+
+    /* ─── LIGHT MODE OVERRIDES ───────────────── */
+    [data-theme="light"] .sidebar { background: #fafaf7; border-right-color: var(--border); }
+    [data-theme="light"] .aside { background: #fafaf7; border-left-color: var(--border); }
+    [data-theme="light"] .panel { background: #ffffff; border-color: var(--border); }
+    [data-theme="light"] .panel:hover { border-color: rgba(var(--yr),.35); }
+    [data-theme="light"] .feature-card { background: #ffffff; border-color: #e0dfd8; }
+    [data-theme="light"] .feature-card:hover { border-color: rgba(var(--yr),.5); }
+    [data-theme="light"] .feature-card__bar { background: #e8e8e4; }
+    [data-theme="light"] .overview-bars { background: #ffffff; border-color: #e0dfd8; }
+    [data-theme="light"] .terminal { background: #f0f0ec; border-color: var(--border); }
+    [data-theme="light"] .terminal__line { color: rgba(20,20,18,0.7); }
+    [data-theme="light"] .terminal__cursor { background: rgba(var(--yr),1); }
+    [data-theme="light"] .progress-bg { background: #e8e8e4; }
+    [data-theme="light"] .ticker { background: #f0f0ec; border-color: var(--border); }
+    [data-theme="light"] .ticker__item { color: rgba(20,20,18,0.75); }
+    [data-theme="light"] .feat-row { background: #ffffff; border-color: var(--border); }
+    [data-theme="light"] .feat-row:hover { border-color: rgba(var(--yr),.4); box-shadow: 0 0 12px rgba(var(--yr),.1); }
+    [data-theme="light"] .cand-item { background: #ffffff; border-color: var(--border); }
+    [data-theme="light"] .cand-item:hover { border-color: rgba(var(--yr),.4); }
+    [data-theme="light"] .aside-block { background: #ffffff; border-color: var(--border); }
+    [data-theme="light"] .accord { background: #ffffff; border-color: var(--border); }
+    [data-theme="light"] .accord summary { border-color: var(--border); }
+    [data-theme="light"] .mon-bg { background: #e8e8e4; }
+    [data-theme="light"] .mon-fill { filter: none; }
+    [data-theme="light"] .sb-agent { background: linear-gradient(160deg,rgba(var(--yr),.06),transparent 70%); border-color: var(--border); }
+    [data-theme="light"] .sb-section__title { color: rgba(20,20,18,0.4); }
+    [data-theme="light"] .qa-btn { background: #f0f0ec; border-color: var(--border); color: rgba(20,20,18,0.7); }
+    [data-theme="light"] .qa-btn:hover { border-color: rgba(var(--yr),.5); color: var(--yellow); background: rgba(var(--yr),.07); }
+    [data-theme="light"] .sb-action-btn { background: #f0f0ec; border-color: var(--border); color: rgba(20,20,18,0.6); }
+    [data-theme="light"] #dot-canvas { opacity: 0.06; }
+
+    /* ── Event Timeline ── */
+    .evt-timeline{max-height:320px;overflow-y:auto;padding:4px 0;}
+    .evt-timeline__empty{font-size:11px;color:var(--dim);text-align:center;padding:16px;}
+    .evt-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);animation:evtSlide .3s ease-out both;font-size:11px;}
+    .evt-item:last-child{border-bottom:none;}
+    @keyframes evtSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    .evt-item__icon{font-size:14px;flex-shrink:0;width:24px;text-align:center;margin-top:1px;}
+    .evt-item__body{flex:1;min-width:0;}
+    .evt-item__title{font-weight:600;color:var(--text);margin-bottom:1px;}
+    .evt-item__detail{color:var(--dim);font-size:10px;line-height:1.4;}
+    .evt-item__time{font-size:9px;color:rgba(255,255,255,.25);flex-shrink:0;margin-top:2px;}
+    .evt-item--buy .evt-item__title{color:#22c55e;}
+    .evt-item--sell .evt-item__title,.evt-item--smart_exit .evt-item__title{color:#ef4444;}
+    .evt-item--acquisition .evt-item__title{color:#8b5cf6;}
+    .evt-item--respawn .evt-item__title{color:#00C7D2;}
+    [data-theme="light"] .evt-item{border-bottom-color:rgba(0,0,0,.06);}
+
+    /* ── Toast Notifications ── */
+    #notif-toast-area{position:fixed;top:12px;right:12px;z-index:9999;display:flex;flex-direction:column;gap:5px;pointer-events:none;max-width:280px;width:100%;}
+    .nt-toast{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;background:rgba(18,18,16,.92);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(12px);box-shadow:0 4px 16px rgba(0,0,0,.35);opacity:0;transform:translateX(30px);transition:opacity .25s,transform .25s;}
+    .nt-toast.nt-show{opacity:1;transform:translateX(0);}
+    .nt-toast.nt-hide{opacity:0;transform:translateX(30px) scale(.95);transition:opacity .3s,transform .3s;}
+    .nt-icon{font-size:13px;flex-shrink:0;}
+    .nt-body{flex:1;min-width:0;}
+    .nt-body strong{display:block;font-size:10px;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nt-detail{display:block;font-size:9px;color:rgba(255,255,255,.45);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nt-close{background:none;border:none;color:rgba(255,255,255,.25);font-size:14px;cursor:pointer;padding:0 1px;line-height:1;flex-shrink:0;transition:color .15s,transform .15s;}
+    .nt-close:hover{color:#fff;transform:scale(1.2);}
+    .nt-info{border-left:2px solid #00C7D2;}
+    .nt-warn{border-left:2px solid #EAB308;}
+    .nt-crit{border-left:2px solid #EF4444;}
+    .nt-ok{border-left:2px solid #22C55E;}
+    .nt-progress{position:absolute;bottom:0;left:0;height:2px;background:rgba(255,255,255,.15);border-radius:0 0 0 8px;animation:ntCountdown 5s linear forwards;}
+    @keyframes ntCountdown{from{width:100%}to{width:0%}}
+    [data-theme="light"] .nt-toast{background:rgba(255,255,255,.95);border-color:rgba(0,0,0,.08);box-shadow:0 2px 12px rgba(0,0,0,.08);}
+    [data-theme="light"] .nt-body strong{color:#1a1a1a;}
+    [data-theme="light"] .nt-detail{color:rgba(0,0,0,.5);}
+    [data-theme="light"] .nt-close{color:rgba(0,0,0,.25);}
+    [data-theme="light"] .nt-close:hover{color:#000;}
+    [data-theme="light"] .nt-progress{background:rgba(0,0,0,.1);}
+  </style>
+</head>
+<body>
+  <canvas id="dot-canvas"></canvas>
+  <div id="notif-toast-area"></div>
+
+  <div class="h-modal-backdrop hidden" id="feature-modal">
+    <div class="h-modal">
+      <div class="h-modal__header">
+        <div class="h-modal__title" id="feature-modal-title">Detail</div>
+        <button class="h-modal__close" id="feature-modal-close">&#x2715; Close</button>
+      </div>
+      <div id="feature-modal-body"></div>
+    </div>
+  </div>
+  <div class="h-cloud-popup hidden" id="cloud-auth-popup">
+    <div class="h-cloud-popup__inner">
+      <button class="h-cloud-popup__close" id="cloud-popup-close">&#x2715;</button>
+      <div class="h-cloud-popup__title">Connect Commune</div>
+      <p>Sign in to view agents, credits, and cloud machinery.</p>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- ══ TOP BAR ══════════════════════════════════ -->
+    <div class="topbar">
+      <nav class="topbar__nav">
+        <a class="tb-nav-btn" href="index.html" style="border-color:rgba(var(--yr),.5);color:var(--yellow);">&#x2190; Back to The Farm Gate</a>
+      </nav>
+      <div class="topbar__right">
+        <span class="topbar__time" id="tb-time"></span>
+        <button class="tb-btn live"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);animation:live-pulse 2s infinite;vertical-align:middle;margin-right:4px"></span>SEASON LIVE</button>
+        <a class="tb-btn primary" href="docs.html" title="The Farmer's Almanac">&#x1F4D6; Almanac</a>
+        <a class="tb-btn primary" href="goo.html" title="Farmhand Arena">&#x1F69C; Arena</a>
+        <a class="tb-btn primary" href="airdrop.html" title="Harvest Festival">&#x1F33E; Festival</a>
+        <a class="tb-btn primary" href="https://x.com/elizaok_bsc" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 2H22l-6.77 7.74L23.2 22h-6.26l-4.9-7.4L5.53 22H2.4l7.24-8.28L1.2 2H7.6l4.43 6.73L18.9 2Zm-1.1 18h1.73L6.66 3.9H4.8L17.8 20Z"/></svg></a>
+        <a class="tb-btn primary" href="https://github.com/FarmerAgentbsc" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.12.82-.26.82-.58v-2.04c-3.34.73-4.04-1.42-4.04-1.42-.54-1.38-1.34-1.75-1.34-1.75-1.1-.74.08-.73.08-.73 1.22.09 1.86 1.25 1.86 1.25 1.08 1.86 2.84 1.32 3.53 1.01.11-.79.42-1.32.76-1.63-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.24-3.22-.13-.31-.54-1.53.12-3.19 0 0 1.01-.32 3.3 1.23a11.4 11.4 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.19.77.84 1.24 1.91 1.24 3.22 0 4.62-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.23v3.31c0 .32.21.7.82.58A12 12 0 0 0 12 .5Z"/></svg></a>
+        <a class="tb-btn primary" href="../dashboard.html">中文</a>
+        <button class="tb-btn primary" id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">☀</button>
+      </div>
+    </div>
+
+    <!-- Mobile agent banner (visible < 860px) -->
+    <div class="mobile-agent-banner">
+      <img class="mobile-agent-banner__avatar" src="../assets/farmer-agent-logo.png" alt="Farmer Agent" />
+      <div class="mobile-agent-banner__info">
+        <div class="mobile-agent-banner__name">Farmer Agent</div>
+        <div class="mobile-agent-banner__role">Tractor-powered system · Farming on BSC Chain</div>
+      </div>
+    </div>
+    <!-- Mobile ElizaCloud strip (visible < 860px when sidebar hidden) -->
+    <div class="mobile-cloud-strip">
+      <span>&#x2601;&#xFE0F; TractorCloud</span>
+      <a class="mobile-cloud-strip__btn" href="cloud/agents.html" id="mobile-cloud-btn">Open Agents &rarr;</a>
+    </div>
+
+    <div class="content-area">
+
+      <!-- ══ LEFT SIDEBAR ═══════════════════════════ -->
+      <div class="sidebar">
+
+        <!-- Agent identity -->
+        <div class="sb-agent">
+          <img class="sb-agent__avatar" src="../assets/farmer-agent-logo.png" alt="Farmer Agent" />
+          <div class="sb-agent__status"><span class="sb-agent__status-dot"></span>LIVE</div>
+          <div class="sb-agent__name">Farmer Agent</div>
+          <div class="sb-agent__role">Tractor-powered system &middot; Automated farming co-op</div>
+          <div class="sb-agent__addr">0x2D6C...0c5F</div>
+          <div class="sb-agent__bal">0.0010 BNB</div>
+        </div>
+
+        <!-- Agent info -->
+        <div class="sb-section">
+          <div class="sb-section__title">Status</div>
+          <div class="sb-stat-row"><span>Mode</span><strong class="">GREENHOUSE SANDBOX</strong></div>
+          <div class="sb-stat-row"><span>Scout</span><strong>every 15m</strong></div>
+          <div class="sb-stat-row"><span>Season Ready</span><strong class="y">4/4 plots</strong></div>
+          
+        </div>
+
+        <!-- Quick actions -->
+        <div class="sb-section">
+          <div class="sb-section__title">Farm Map</div>
+          <button class="qa-btn" data-nav="overview" onclick="window.scrollTo(0,0)"><span class="qa-btn__icon">&#x1F3E0;</span>GATE</button>
+          <button class="qa-btn" data-nav="discovery"><span class="qa-btn__icon">&#x1F50D;</span>FIELDS</button>
+          <button class="qa-btn" data-nav="portfolio"><span class="qa-btn__icon">&#x1F33E;</span>SILO</button>
+          <button class="qa-btn" data-nav="execution"><span class="qa-btn__icon">&#x1F331;</span>PLANTING</button>
+          <button class="qa-btn" data-nav="flywheel"><span class="qa-btn__icon">&#x1F6DE;</span>WATERWHEEL</button>
+          <button class="qa-btn" data-nav="distribution"><span class="qa-btn__icon">&#x1F33E;</span>FESTIVAL</button>
+          <button class="qa-btn" data-nav="goo"><span class="qa-btn__icon">&#x1F69C;</span>FARMHANDS</button>
+        </div>
+
+        <!-- ElizaCloud -->
+        <div class="sb-section cloud-card" id="cloud-cta-card" style="border:1px solid rgba(0,199,210,.18);border-radius:8px;padding:10px">
+          <div class="sb-section__title" style="color:#00C7D2">&#x2601;&#xFE0F; TractorCloud</div>
+          <div class="cloud-card__banner">
+            <img src="../assets/cloud-banner.png.jpeg" alt="TractorCloud" class="cloud-card__img" />
+          </div>
+          <div class="cloud-card__features">
+            <div class="cloud-card__feat">&#x2601;&#xFE0F; cloud agent roster</div>
+            <div class="cloud-card__feat">&#x1F4AC; foreman chat</div>
+            <div class="cloud-card__feat">&#x26A1; work-point balance</div>
+          </div>
+          <a class="cloud-card__btn" href="cloud/agents.html" id="sidebar-cloud-btn">Open Agents &rarr;</a>
+        </div>
+
+        <!-- Footer -->
+        <div class="np-footer">
+          <span>FARM LOG</span>
+          <a href="https://github.com/FarmerAgentbsc" target="_blank" rel="noreferrer">GitHub &#x2197;</a>
+        </div>
+
+      </div><!-- /sidebar -->
+
+      <!-- ══ MAIN CONTENT ══════════════════════════ -->
+      <div class="main">
+
+        <!-- ROW 1: Agent Terminal | Token Explorer -->
+        <div class="panel-row panel-row--2">
+
+          <!-- Embedded Agent Terminal -->
+          <div class="panel">
+            <div class="panel__head">
+              <span class="pb-dot g"></span>
+              <span class="panel__title">The Barn Log</span>
+              <div style="display:flex;gap:4px;margin-left:auto">
+                <span class="panel__badge pb-dim">GREENHOUSE SANDBOX</span>
+                <span class="panel__badge pb-green">SEASON READY</span>
+              </div>
+            </div>
+            <div class="panel__body panel__body--p0">
+              <div class="term-body">
+                <div class="prompt-line"><span class="pr">barn@elizaok-farm:~$</span><span class="cmd">farm scout --chain xxx --mode greenhouse</span></div>
+                <div class="term-line"><span class="ts">03:28:36</span><span class="tag tag-info">SOIL</span><span class="msg">Checking fresh fields</span></div>
+                <div class="term-line"><span class="ts">&nbsp;</span><span class="tag tag-ok">RADAR</span><span class="msg">Found <span class="hi">12</span> fields · <span class="hi">2</span> ready for planting</span></div>
+                <div class="term-line"><span class="ts">&nbsp;</span><span class="tag tag-ok">BEST</span><span class="msg"><span class="hi">Scallion LP</span> — richest soil today</span></div>
+                <div class="term-line"><span class="ts">&nbsp;</span><span class="tag tag-info">SILO</span><span class="msg">2 crops in storage · 1.9847 BNB fertilizer deployed</span></div>
+                <div class="term-line"><span class="ts">&nbsp;</span><span class="tag tag-info">WHEEL</span><span class="msg">Waterwheel spinning · 70% buys seeds</span></div>
+                <div class="term-line"><span class="ts">&nbsp;</span><span class="tag tag-info">WEATH</span><span class="msg">Storm watch on low-APY plots</span></div>
+                <div class="term-line"><span class="ts">&nbsp;</span><span class="tag tag-info">CREW</span><span class="msg">8 farmhands in the arena · 7 can be composted into upgrades</span></div>
+                <div class="prompt-line" style="margin-top:6px"><span class="pr">&gt;_</span><span class="cursor"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Token Explorer — tile grid -->
+          <div class="panel">
+            <div class="panel__head">
+              <span class="pb-dot g"></span>
+              <span class="panel__title">Crop Explorer</span>
+              <span class="panel__badge pb-yellow">10 fields</span>
+            </div>
+            <div class="panel__body panel__body--p0">
+              <div class="te-section">
+                <div class="te-label">Scouting Fields</div>
+                <div class="te-grid">
+                  <a class="te-tile te-tile--buy" href="https://four.meme/token/0x44446e301be5b189d74b1855e63c682a1dc1026d" target="_blank" rel="noreferrer" title="Scallion LP · 93">
+                    <span class="te-tile__name">Scallion LP</span>
+                    <span class="te-tile__score">93</span>
+                    <span class="te-tile__dot">🟢</span>
+                  </a>
+                  <a class="te-tile te-tile--buy" href="https://four.meme/token/0xcb3679a259a16e7a282248ccbf79418474844444" target="_blank" rel="noreferrer" title="Potato LP · 79">
+                    <span class="te-tile__name">Potato LP</span>
+                    <span class="te-tile__score">79</span>
+                    <span class="te-tile__dot">🟢</span>
+                  </a>
+                  <a class="te-tile te-tile--watch" href="https://four.meme/token/0xd0a7bb113a01cb02cd3f55284d29512c15544444" target="_blank" rel="noreferrer" title="Bean Field · 63">
+                    <span class="te-tile__name">Bean Field</span>
+                    <span class="te-tile__score">63</span>
+                    <span class="te-tile__dot">🟡</span>
+                  </a>
+                  <a class="te-tile te-tile--watch" href="https://four.meme/token/0x65a3415cbcf0e066d931a55ae81e279d32f64444" target="_blank" rel="noreferrer" title="Happy Drifter · 63">
+                    <span class="te-tile__name">Happy Drifter</span>
+                    <span class="te-tile__score">63</span>
+                    <span class="te-tile__dot">🟡</span>
+                  </a>
+                </div>
+              </div>
+              
+              <div class="te-section" style="margin-top:2px;padding-top:2px;border-top:1px solid var(--border)">
+                <div class="te-label">Silo</div>
+                <div class="te-grid">
+                  <a class="te-tile te-tile--held" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x44446e301be5b189d74b1855e63c682a1dc1026d" target="_blank" rel="noreferrer" title="Scallion LP · active">
+                    <span class="te-tile__name">Scallion LP</span>
+                    <span class="te-tile__dot">🟢 held</span>
+                  </a>
+                  <a class="te-tile te-tile--held" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xcb3679a259a16e7a282248ccbf79418474844444" target="_blank" rel="noreferrer" title="Potato LP · active">
+                    <span class="te-tile__name">Potato LP</span>
+                    <span class="te-tile__dot">🟢 held</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /panel-row--2 -->
+
+        <!-- STATUS STRIP -->
+        <div class="status-strip" id="dashboard-status-strip">
+          <a class="ss-chip" href="#discovery-section"><span class="ss-dot" style="background:var(--green)"></span><span class="ss-label">APY Radar</span><strong>2/12</strong></a>
+          <a class="ss-chip" href="#portfolio-section"><span class="ss-dot" style="background:var(--green)"></span><span class="ss-label">Silo</span><strong>2 · 1.9847 BNB</strong></a>
+          <a class="ss-chip" href="#treasury-section"><span class="ss-dot" style="background:var(--yellow)"></span><span class="ss-label">Planting</span><strong>GREENHOUSE</strong></a>
+          <a class="ss-chip" href="#flywheel-section"><span class="ss-dot" style="background:var(--green)"></span><span class="ss-label">Waterwheel</span><strong>$14777</strong></a>
+          <a class="ss-chip" href="#distribution-section"><span class="ss-dot" style="background:rgba(255,255,255,.3)"></span><span class="ss-label">Festival</span><strong>7 villagers</strong></a>
+          <a class="ss-chip" href="#goo-section"><span class="ss-dot" style="background:var(--green)"></span><span class="ss-label">Farmhands</span><strong>0/8</strong></a>
+        </div>
+
+        <!-- GOO ARENA PREVIEW -->
+        <div class="arena-preview">
+          <div class="arena-preview__head">
+            <span class="arena-preview__title">&#x1F69C; Farmhand Arena</span>
+            <a class="arena-preview__link" href="goo.html">Farmhand Market &rarr;</a>
+          </div>
+          <p class="arena-preview__desc" id="dashboard-arena-desc">The co-op watches veteran farmhands, broken tractors, and miracle tools. Weak performers get composted, while the best instincts are folded back into the main tractor.</p>
+          <div class="arena-grid" id="dashboard-arena-grid">
+            
+            <div class="arena-card arena-card--leader" onclick="window.location='/goo/agent/goo-e258-66c9-8fa6'">
+              <div class="arena-card__rank">#1</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--red, #ef4444)"></div>
+                <div class="arena-card__name">Old Li Tractor</div>
+                <span class="arena-card__badge">Steady Auntie</span>
+              </div>
+              <div class="arena-card__pnl g">+$15.33</div>
+              <div class="arena-card__stats">
+                <span>0.10 BNB</span>
+                <span>35% WR</span>
+                <span>+2.5% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:54%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>54/100</strong></div>
+            </div>
+            <div class="arena-card" onclick="window.location='/goo/agent/goo-ac37-b7f1-cbf5'">
+              <div class="arena-card__rank">#2</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--yellow)"></div>
+                <div class="arena-card__name">Aunt Wang Sprinkler</div>
+                <span class="arena-card__badge">Quick Sickle</span>
+              </div>
+              <div class="arena-card__pnl g">+$7.53</div>
+              <div class="arena-card__stats">
+                <span>0.08 BNB</span>
+                <span>18% WR</span>
+                <span>+1.2% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:38%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>38/100</strong></div>
+            </div>
+            <div class="arena-card" onclick="window.location='/goo/agent/goo-b1dd-eb87-6436'">
+              <div class="arena-card__rank">#3</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--yellow)"></div>
+                <div class="arena-card__name">Harvester 3000</div>
+                <span class="arena-card__badge">Night Irrigator</span>
+              </div>
+              <div class="arena-card__pnl g">+$1.12</div>
+              <div class="arena-card__stats">
+                <span>0.00 BNB</span>
+                <span>13% WR</span>
+                <span>+0.2% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:30%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>30/100</strong></div>
+            </div>
+            <div class="arena-card" onclick="window.location='/goo/agent/goo-1d72-ada6-51c9'">
+              <div class="arena-card__rank">#4</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--red, #ef4444)"></div>
+                <div class="arena-card__name">Mule Cart</div>
+                <span class="arena-card__badge">Market Gossip</span>
+              </div>
+              <div class="arena-card__pnl g">+$3.46</div>
+              <div class="arena-card__stats">
+                <span>0.00 BNB</span>
+                <span>17% WR</span>
+                <span>+0.6% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:26%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>26/100</strong></div>
+            </div>
+            <div class="arena-card" onclick="window.location='/goo/agent/goo-d8d9-f9ca-7466'">
+              <div class="arena-card__rank">#5</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--red, #ef4444)"></div>
+                <div class="arena-card__name">Red Scythe</div>
+                <span class="arena-card__badge">Turbo Harvester</span>
+              </div>
+              <div class="arena-card__pnl g">+$0.19</div>
+              <div class="arena-card__stats">
+                <span>0.00 BNB</span>
+                <span>7% WR</span>
+                <span>+0.0% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:19%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>19/100</strong></div>
+            </div>
+            <div class="arena-card" onclick="window.location='/goo/agent/goo-03e1-8b80-37e3'">
+              <div class="arena-card__rank">#6</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--red, #ef4444)"></div>
+                <div class="arena-card__name">Young Chen Seeder</div>
+                <span class="arena-card__badge">Barn Bookkeeper</span>
+              </div>
+              <div class="arena-card__pnl r">$1.11</div>
+              <div class="arena-card__stats">
+                <span>0.00 BNB</span>
+                <span>7% WR</span>
+                <span>-0.2% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:18%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>18/100</strong></div>
+            </div>
+            <div class="arena-card" onclick="window.location='/goo/agent/goo-c5f3-4787-638a'">
+              <div class="arena-card__rank">#7</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--red, #ef4444)"></div>
+                <div class="arena-card__name">Uncle Wu Soil Reader</div>
+                <span class="arena-card__badge">Soil Inspector</span>
+              </div>
+              <div class="arena-card__pnl r">$1.11</div>
+              <div class="arena-card__stats">
+                <span>0.00 BNB</span>
+                <span>7% WR</span>
+                <span>-0.2% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:18%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>18/100</strong></div>
+            </div>
+            <div class="arena-card" onclick="window.location='/goo/agent/goo-65b3-4198-3745'">
+              <div class="arena-card__rank">#8</div>
+              <div class="arena-card__head">
+                <div class="arena-card__dot" style="background:var(--red, #ef4444)"></div>
+                <div class="arena-card__name">Lightning Thresher</div>
+                <span class="arena-card__badge">Storm Chaser</span>
+              </div>
+              <div class="arena-card__pnl r">$0.04</div>
+              <div class="arena-card__stats">
+                <span>0.00 BNB</span>
+                <span>8% WR</span>
+                <span>-0.0% ROI</span>
+              </div>
+              <div class="arena-card__bar"><div class="arena-card__bar-fill" style="width:17%"></div></div>
+              <div class="arena-card__score">Acq. Score <strong>17/100</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion detail sections -->
+        <div class="accord-panel">
+          <details class="panel-accord" id="discovery-section">
+            <summary class="panel-accord__sum">
+              <span class="panel-accord__title">&#x1F50D; APY Radar &amp; Soil Report</span>
+              <span class="panel-accord__meta">12 scanned · 2 buy-ready · avg 68</span>
+              <span class="panel-accord__arr">&#x25BE;</span>
+            </summary>
+            <div class="panel-accord__body">
+              <div class="split-grid">
+                <div><div class="split-h">Best Fields</div>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">01</span>
+            <span class="pill tone-hot">🌱 PLANT</span>
+          </div>
+          <h3><a class="candidate-link" href="https://four.meme/token/0x44446e301be5b189d74b1855e63c682a1dc1026d" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Score 93/100 · 1m old · four-meme</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>FDV</span><strong>$11,267</strong></div>
+            <div><span>Liquidity</span><strong>$10,726</strong></div>
+            <div><span>Vol (5m)</span><strong>$555</strong></div>
+            <div><span>Est. Size</span><strong>1.0000 BNB</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">02</span>
+            <span class="pill tone-hot">🌱 PLANT</span>
+          </div>
+          <h3><a class="candidate-link" href="https://four.meme/token/0xcb3679a259a16e7a282248ccbf79418474844444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Score 79/100 · 1m old · four-meme</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>FDV</span><strong>$4,421</strong></div>
+            <div><span>Liquidity</span><strong>$3,537</strong></div>
+            <div><span>Vol (5m)</span><strong>$3,985</strong></div>
+            <div><span>Est. Size</span><strong>0.8503 BNB</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">03</span>
+            <span class="pill tone-warm">👀 SCOUT</span>
+          </div>
+          <h3><a class="candidate-link" href="https://four.meme/token/0xd0a7bb113a01cb02cd3f55284d29512c15544444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Score 69/100 · 1m old · four-meme</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>FDV</span><strong>$5,074</strong></div>
+            <div><span>Liquidity</span><strong>$4,211</strong></div>
+            <div><span>Vol (5m)</span><strong>$1,050</strong></div>
+            <div><span>Est. Size</span><strong>1.0000 BNB</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">04</span>
+            <span class="pill tone-warm">👀 SCOUT</span>
+          </div>
+          <h3><a class="candidate-link" href="https://four.meme/token/0x4fa61fab7733f88683782d9a06c207f4b30d4444" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Score 69/100 · 1m old · four-meme</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>FDV</span><strong>$4,823</strong></div>
+            <div><span>Liquidity</span><strong>$3,755</strong></div>
+            <div><span>Vol (5m)</span><strong>$3,520</strong></div>
+            <div><span>Est. Size</span><strong>0.9028 BNB</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">05</span>
+            <span class="pill tone-warm">👀 SCOUT</span>
+          </div>
+          <h3><a class="candidate-link" href="https://four.meme/token/0x95cc5d9915ec50973d3ecf574fa7af2f9df14444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Score 64/100 · 1m old · four-meme</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>FDV</span><strong>$3,785</strong></div>
+            <div><span>Liquidity</span><strong>$3,028</strong></div>
+            <div><span>Vol (5m)</span><strong>$2,976</strong></div>
+            <div><span>Est. Size</span><strong>0.7280 BNB</strong></div>
+          </div>
+        </article></div>
+                <div>
+                  <div class="split-h">Scout Log</div>
+        <div class="status-row">
+          <span>12:04</span>
+          <strong>
+            12 scanned · 2 buy signals · avg 68/100
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>12:03</span>
+          <strong>
+            12 scanned · 2 buy signals · avg 69/100
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>12:03</span>
+          <strong>
+            12 scanned · 2 buy signals · avg 69/100
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>12:02</span>
+          <strong>
+            12 scanned · 2 buy signals · avg 69/100
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>12:02</span>
+          <strong>
+            12 scanned · 1 buy signals · avg 63/100
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>12:02</span>
+          <strong>
+            12 scanned · 1 buy signals · avg 63/100
+          </strong>
+        </div>
+                  <div class="split-h" style="margin-top:12px">Tracked Crops (24)</div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xfbd8c69ffe3ea3d88c71e8bfe580852d2d024444" target="_blank" rel="noreferrer">Golden Wheat LP</a></span>
+          <strong>🟢 100/100 · 12x seen </strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x7d8e04f76d645d58bdcace6e93bdba367205f586" target="_blank" rel="noreferrer">Sunflower LP</a></span>
+          <strong>🟢 100/100 · 11x seen </strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x007215ae85b2aac66cbcaf76b2b203183e6b4444" target="_blank" rel="noreferrer">Garlic LP</a></span>
+          <strong>🟢 100/100 · 10x seen </strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x8e62a3943d8ea20da0d841b3f8fac2bab65d4bcc" target="_blank" rel="noreferrer">CZ</a></span>
+          <strong>🟢 100/100 · 10x seen </strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xf4076a83ebd43bcbb934c9875b76b9c4e7149fd2" target="_blank" rel="noreferrer">🏆SUPE</a></span>
+          <strong>🟢 100/100 · 9x seen </strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x7ffede9aff2e97e21e05b12a043556ea9b6a68fb" target="_blank" rel="noreferrer">PEANUTMOLTBOT</a></span>
+          <strong>🟢 100/100 · 9x seen </strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x29aedc9e42684e8da147428d0645f7730b38d430" target="_blank" rel="noreferrer">CAT</a></span>
+          <strong>🟢 100/100 · 9x seen </strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x5fba27fad42e34961f1606a7c0bd880d436d7777" target="_blank" rel="noreferrer">AI病毒</a></span>
+          <strong>🟢 100/100 · 8x seen </strong>
+        </div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="panel-accord" id="portfolio-section">
+            <summary class="panel-accord__sum">
+              <span class="panel-accord__title">&#x1F4BC; Silo Ledger</span>
+              <span class="panel-accord__meta">2 active · 10 watch · 1.9847 BNB deployed</span>
+              <span class="panel-accord__arr">&#x25BE;</span>
+            </summary>
+            <div class="panel-accord__body">
+              
+    <div style="margin-top:12px">
+      <div class="split-h">Cumulative Harvest (674 cleared plots)</div>
+      <svg viewBox="0 0 460 120" style="width:100%;height:auto;max-height:140px;display:block">
+        <path d="M30.0,109.98667725913384 L30.0,110.0 30.6,110.0 31.2,110.0 31.8,110.0 32.4,110.0 33.0,110.0 33.6,110.0 34.2,110.0 34.8,110.0 35.3,110.0 35.9,110.0 36.5,110.0 37.1,110.0 37.7,110.0 38.3,110.0 38.9,110.0 39.5,110.0 40.1,110.0 40.7,110.0 41.3,110.0 41.9,110.0 42.5,110.0 43.1,110.0 43.7,110.0 44.3,110.0 44.9,110.0 45.5,110.0 46.0,110.0 46.6,110.0 47.2,110.0 47.8,110.0 48.4,110.0 49.0,110.0 49.6,110.0 50.2,110.0 50.8,110.0 51.4,110.0 52.0,110.0 52.6,110.0 53.2,110.0 53.8,110.0 54.4,110.0 55.0,110.0 55.6,110.0 56.2,110.0 56.7,110.0 57.3,110.0 57.9,110.0 58.5,110.0 59.1,110.0 59.7,110.0 60.3,110.0 60.9,110.0 61.5,110.0 62.1,110.0 62.7,110.0 63.3,110.0 63.9,110.0 64.5,110.0 65.1,110.0 65.7,107.5 66.3,107.5 66.8,107.5 67.4,107.5 68.0,107.5 68.6,107.5 69.2,107.5 69.8,107.5 70.4,107.5 71.0,107.5 71.6,107.5 72.2,107.5 72.8,107.5 73.4,107.5 74.0,107.5 74.6,107.5 75.2,107.5 75.8,107.5 76.4,107.5 77.0,107.5 77.5,107.5 78.1,107.5 78.7,107.5 79.3,107.5 79.9,107.5 80.5,107.5 81.1,107.5 81.7,107.5 82.3,107.5 82.9,107.5 83.5,107.5 84.1,107.5 84.7,107.5 85.3,107.5 85.9,107.5 86.5,107.5 87.1,107.5 87.7,107.5 88.2,107.5 88.8,107.5 89.4,107.5 90.0,107.5 90.6,107.5 91.2,107.5 91.8,107.5 92.4,107.5 93.0,104.2 93.6,106.9 94.2,106.9 94.8,106.9 95.4,106.9 96.0,106.9 96.6,106.9 97.2,106.9 97.8,106.9 98.4,106.9 98.9,106.9 99.5,106.9 100.1,106.9 100.7,106.9 101.3,106.9 101.9,106.9 102.5,106.9 103.1,106.9 103.7,106.9 104.3,106.9 104.9,106.9 105.5,106.9 106.1,106.9 106.7,106.9 107.3,106.9 107.9,106.9 108.5,106.9 109.0,106.9 109.6,106.9 110.2,106.9 110.8,106.9 111.4,106.9 112.0,106.9 112.6,106.9 113.2,106.9 113.8,106.9 114.4,106.9 115.0,106.9 115.6,106.9 116.2,106.9 116.8,106.9 117.4,106.9 118.0,106.9 118.6,106.9 119.2,106.9 119.7,106.9 120.3,106.9 120.9,106.9 121.5,106.9 122.1,106.9 122.7,106.9 123.3,106.9 123.9,106.9 124.5,106.9 125.1,106.9 125.7,106.9 126.3,106.9 126.9,106.9 127.5,106.9 128.1,106.9 128.7,106.9 129.3,106.9 129.9,106.9 130.4,106.9 131.0,106.9 131.6,109.1 132.2,109.1 132.8,109.1 133.4,109.1 134.0,109.1 134.6,109.1 135.2,109.1 135.8,109.1 136.4,109.1 137.0,109.1 137.6,109.1 138.2,109.1 138.8,109.1 139.4,109.1 140.0,109.1 140.5,109.1 141.1,109.1 141.7,109.1 142.3,109.1 142.9,109.1 143.5,109.1 144.1,109.1 144.7,109.1 145.3,109.1 145.9,109.1 146.5,109.1 147.1,109.1 147.7,109.1 148.3,109.1 148.9,109.1 149.5,109.1 150.1,109.1 150.7,109.1 151.2,109.1 151.8,106.7 152.4,104.5 153.0,104.4 153.6,104.4 154.2,104.4 154.8,104.4 155.4,104.4 156.0,104.4 156.6,104.4 157.2,104.4 157.8,104.4 158.4,104.4 159.0,104.4 159.6,104.4 160.2,104.4 160.8,104.4 161.4,104.4 161.9,104.4 162.5,104.4 163.1,104.4 163.7,104.4 164.3,104.4 164.9,104.4 165.5,104.4 166.1,104.4 166.7,104.4 167.3,104.4 167.9,104.4 168.5,104.4 169.1,104.4 169.7,104.4 170.3,104.4 170.9,104.4 171.5,104.4 172.1,104.4 172.6,104.4 173.2,104.4 173.8,104.4 174.4,104.4 175.0,104.4 175.6,104.4 176.2,104.4 176.8,104.4 177.4,104.4 178.0,104.4 178.6,104.4 179.2,104.4 179.8,104.4 180.4,104.4 181.0,104.4 181.6,104.4 182.2,104.4 182.7,104.4 183.3,104.4 183.9,104.4 184.5,104.4 185.1,104.4 185.7,104.4 186.3,104.4 186.9,104.4 187.5,104.4 188.1,104.4 188.7,104.4 189.3,104.4 189.9,104.4 190.5,104.4 191.1,103.1 191.7,103.1 192.3,103.1 192.9,102.1 193.4,102.1 194.0,102.1 194.6,102.1 195.2,102.1 195.8,102.1 196.4,102.1 197.0,102.1 197.6,102.1 198.2,102.1 198.8,102.1 199.4,102.1 200.0,102.1 200.6,102.1 201.2,102.1 201.8,102.1 202.4,102.1 203.0,102.1 203.6,102.1 204.1,102.1 204.7,102.1 205.3,102.1 205.9,102.1 206.5,102.1 207.1,102.1 207.7,102.1 208.3,102.1 208.9,102.1 209.5,102.1 210.1,102.1 210.7,102.1 211.3,102.1 211.9,102.1 212.5,102.1 213.1,102.1 213.7,102.1 214.2,102.1 214.8,102.1 215.4,102.1 216.0,102.1 216.6,100.2 217.2,100.3 217.8,100.3 218.4,100.3 219.0,100.3 219.6,100.3 220.2,100.2 220.8,100.2 221.4,100.8 222.0,100.8 222.6,100.8 223.2,100.8 223.8,100.8 224.4,100.8 224.9,100.8 225.5,100.8 226.1,100.8 226.7,100.8 227.3,101.4 227.9,101.4 228.5,100.9 229.1,101.4 229.7,101.4 230.3,101.4 230.9,101.4 231.5,101.4 232.1,91.0 232.7,91.0 233.3,88.2 233.9,81.3 234.5,81.2 235.1,81.2 235.6,81.2 236.2,81.9 236.8,80.8 237.4,82.9 238.0,82.9 238.6,82.9 239.2,82.9 239.8,82.9 240.4,82.9 241.0,82.9 241.6,82.9 242.2,82.9 242.8,76.0 243.4,76.0 244.0,76.0 244.6,76.0 245.2,76.0 245.8,76.0 246.3,76.0 246.9,76.0 247.5,76.0 248.1,76.0 248.7,76.0 249.3,76.0 249.9,76.0 250.5,76.0 251.1,76.1 251.7,76.8 252.3,76.8 252.9,76.8 253.5,76.8 254.1,76.8 254.7,76.8 255.3,76.8 255.9,76.8 256.4,76.8 257.0,76.8 257.6,76.8 258.2,76.8 258.8,76.8 259.4,76.8 260.0,76.8 260.6,76.8 261.2,76.8 261.8,76.8 262.4,76.8 263.0,76.8 263.6,76.8 264.2,76.8 264.8,76.8 265.4,76.8 266.0,76.8 266.6,76.8 267.1,76.8 267.7,76.8 268.3,76.8 268.9,76.8 269.5,76.8 270.1,76.8 270.7,76.8 271.3,76.8 271.9,76.8 272.5,76.8 273.1,76.8 273.7,76.8 274.3,76.8 274.9,76.8 275.5,76.8 276.1,76.8 276.7,76.8 277.3,76.8 277.8,76.8 278.4,76.8 279.0,78.2 279.6,78.8 280.2,78.8 280.8,79.7 281.4,79.7 282.0,79.7 282.6,79.7 283.2,79.7 283.8,79.7 284.4,79.7 285.0,79.7 285.6,79.7 286.2,79.7 286.8,79.7 287.4,79.7 287.9,79.7 288.5,79.7 289.1,76.7 289.7,76.3 290.3,76.3 290.9,76.3 291.5,76.3 292.1,76.3 292.7,77.8 293.3,77.8 293.9,77.8 294.5,77.1 295.1,79.0 295.7,79.0 296.3,79.0 296.9,79.0 297.5,79.0 298.1,79.0 298.6,79.0 299.2,79.0 299.8,79.0 300.4,79.0 301.0,79.0 301.6,79.0 302.2,79.0 302.8,79.0 303.4,79.0 304.0,79.0 304.6,79.0 305.2,79.0 305.8,79.0 306.4,79.0 307.0,79.0 307.6,79.0 308.2,78.9 308.8,78.9 309.3,78.9 309.9,78.9 310.5,78.9 311.1,78.9 311.7,78.9 312.3,78.9 312.9,78.9 313.5,78.9 314.1,78.9 314.7,78.9 315.3,78.3 315.9,78.3 316.5,78.9 317.1,78.9 317.7,78.9 318.3,78.9 318.9,78.9 319.5,78.9 320.0,78.9 320.6,78.9 321.2,78.9 321.8,78.9 322.4,78.9 323.0,78.9 323.6,78.9 324.2,78.9 324.8,78.9 325.4,78.9 326.0,78.9 326.6,78.9 327.2,78.9 327.8,80.4 328.4,80.4 329.0,84.5 329.6,84.5 330.1,84.5 330.7,84.5 331.3,84.5 331.9,84.5 332.5,84.5 333.1,84.5 333.7,84.5 334.3,84.9 334.9,87.2 335.5,87.2 336.1,87.2 336.7,87.2 337.3,87.2 337.9,87.2 338.5,87.1 339.1,84.8 339.7,85.3 340.3,85.3 340.8,85.3 341.4,85.3 342.0,85.3 342.6,85.3 343.2,85.3 343.8,85.3 344.4,85.3 345.0,85.3 345.6,85.3 346.2,85.3 346.8,78.9 347.4,78.9 348.0,78.9 348.6,76.9 349.2,76.4 349.8,76.4 350.4,76.4 351.0,76.6 351.5,76.6 352.1,76.6 352.7,76.6 353.3,76.6 353.9,77.6 354.5,77.6 355.1,77.6 355.7,77.6 356.3,75.8 356.9,75.8 357.5,75.8 358.1,75.8 358.7,75.8 359.3,75.8 359.9,76.9 360.5,76.9 361.1,76.9 361.6,78.5 362.2,78.5 362.8,78.5 363.4,71.4 364.0,71.4 364.6,72.9 365.2,72.9 365.8,72.9 366.4,72.9 367.0,72.9 367.6,72.9 368.2,72.9 368.8,72.9 369.4,72.9 370.0,72.9 370.6,72.9 371.2,72.9 371.8,72.9 372.3,72.9 372.9,76.6 373.5,76.6 374.1,76.6 374.7,76.6 375.3,76.6 375.9,71.6 376.5,71.6 377.1,71.6 377.7,71.6 378.3,71.6 378.9,69.9 379.5,71.0 380.1,71.0 380.7,71.0 381.3,71.0 381.9,71.0 382.5,71.0 383.0,71.0 383.6,71.0 384.2,71.0 384.8,71.0 385.4,70.3 386.0,70.3 386.6,70.6 387.2,64.9 387.8,64.9 388.4,64.9 389.0,64.9 389.6,64.9 390.2,64.9 390.8,64.9 391.4,64.9 392.0,64.9 392.6,64.9 393.2,64.9 393.7,64.9 394.3,64.9 394.9,13.7 395.5,13.7 396.1,13.7 396.7,13.7 397.3,13.7 397.9,13.7 398.5,13.7 399.1,13.7 399.7,10.8 400.3,11.2 400.9,11.2 401.5,11.2 402.1,11.2 402.7,11.2 403.3,11.2 403.8,11.2 404.4,11.2 405.0,10.0 405.6,10.6 406.2,10.6 406.8,10.6 407.4,10.6 408.0,10.6 408.6,11.6 409.2,11.6 409.8,11.6 410.4,11.6 411.0,11.6 411.6,11.6 412.2,11.6 412.8,11.6 413.4,11.6 414.0,11.6 414.5,11.5 415.1,11.5 415.7,11.5 416.3,11.5 416.9,11.5 417.5,11.5 418.1,11.5 418.7,11.5 419.3,11.5 419.9,11.5 420.5,11.5 421.1,11.5 421.7,11.5 422.3,11.5 422.9,11.5 423.5,11.5 424.1,11.5 424.7,11.5 425.2,11.5 425.8,11.5 426.4,11.5 427.0,11.5 427.6,11.5 428.2,11.5 428.8,11.5 429.4,11.5 430.0,11.5 L430.0,109.98667725913384 Z" fill="rgba(34,197,94,.1)"/>
+        <line x1="30" y1="109.98667725913384" x2="430" y2="109.98667725913384" stroke="rgba(255,255,255,.1)" stroke-dasharray="3,3"/>
+        <polyline points="30.0,110.0 30.6,110.0 31.2,110.0 31.8,110.0 32.4,110.0 33.0,110.0 33.6,110.0 34.2,110.0 34.8,110.0 35.3,110.0 35.9,110.0 36.5,110.0 37.1,110.0 37.7,110.0 38.3,110.0 38.9,110.0 39.5,110.0 40.1,110.0 40.7,110.0 41.3,110.0 41.9,110.0 42.5,110.0 43.1,110.0 43.7,110.0 44.3,110.0 44.9,110.0 45.5,110.0 46.0,110.0 46.6,110.0 47.2,110.0 47.8,110.0 48.4,110.0 49.0,110.0 49.6,110.0 50.2,110.0 50.8,110.0 51.4,110.0 52.0,110.0 52.6,110.0 53.2,110.0 53.8,110.0 54.4,110.0 55.0,110.0 55.6,110.0 56.2,110.0 56.7,110.0 57.3,110.0 57.9,110.0 58.5,110.0 59.1,110.0 59.7,110.0 60.3,110.0 60.9,110.0 61.5,110.0 62.1,110.0 62.7,110.0 63.3,110.0 63.9,110.0 64.5,110.0 65.1,110.0 65.7,107.5 66.3,107.5 66.8,107.5 67.4,107.5 68.0,107.5 68.6,107.5 69.2,107.5 69.8,107.5 70.4,107.5 71.0,107.5 71.6,107.5 72.2,107.5 72.8,107.5 73.4,107.5 74.0,107.5 74.6,107.5 75.2,107.5 75.8,107.5 76.4,107.5 77.0,107.5 77.5,107.5 78.1,107.5 78.7,107.5 79.3,107.5 79.9,107.5 80.5,107.5 81.1,107.5 81.7,107.5 82.3,107.5 82.9,107.5 83.5,107.5 84.1,107.5 84.7,107.5 85.3,107.5 85.9,107.5 86.5,107.5 87.1,107.5 87.7,107.5 88.2,107.5 88.8,107.5 89.4,107.5 90.0,107.5 90.6,107.5 91.2,107.5 91.8,107.5 92.4,107.5 93.0,104.2 93.6,106.9 94.2,106.9 94.8,106.9 95.4,106.9 96.0,106.9 96.6,106.9 97.2,106.9 97.8,106.9 98.4,106.9 98.9,106.9 99.5,106.9 100.1,106.9 100.7,106.9 101.3,106.9 101.9,106.9 102.5,106.9 103.1,106.9 103.7,106.9 104.3,106.9 104.9,106.9 105.5,106.9 106.1,106.9 106.7,106.9 107.3,106.9 107.9,106.9 108.5,106.9 109.0,106.9 109.6,106.9 110.2,106.9 110.8,106.9 111.4,106.9 112.0,106.9 112.6,106.9 113.2,106.9 113.8,106.9 114.4,106.9 115.0,106.9 115.6,106.9 116.2,106.9 116.8,106.9 117.4,106.9 118.0,106.9 118.6,106.9 119.2,106.9 119.7,106.9 120.3,106.9 120.9,106.9 121.5,106.9 122.1,106.9 122.7,106.9 123.3,106.9 123.9,106.9 124.5,106.9 125.1,106.9 125.7,106.9 126.3,106.9 126.9,106.9 127.5,106.9 128.1,106.9 128.7,106.9 129.3,106.9 129.9,106.9 130.4,106.9 131.0,106.9 131.6,109.1 132.2,109.1 132.8,109.1 133.4,109.1 134.0,109.1 134.6,109.1 135.2,109.1 135.8,109.1 136.4,109.1 137.0,109.1 137.6,109.1 138.2,109.1 138.8,109.1 139.4,109.1 140.0,109.1 140.5,109.1 141.1,109.1 141.7,109.1 142.3,109.1 142.9,109.1 143.5,109.1 144.1,109.1 144.7,109.1 145.3,109.1 145.9,109.1 146.5,109.1 147.1,109.1 147.7,109.1 148.3,109.1 148.9,109.1 149.5,109.1 150.1,109.1 150.7,109.1 151.2,109.1 151.8,106.7 152.4,104.5 153.0,104.4 153.6,104.4 154.2,104.4 154.8,104.4 155.4,104.4 156.0,104.4 156.6,104.4 157.2,104.4 157.8,104.4 158.4,104.4 159.0,104.4 159.6,104.4 160.2,104.4 160.8,104.4 161.4,104.4 161.9,104.4 162.5,104.4 163.1,104.4 163.7,104.4 164.3,104.4 164.9,104.4 165.5,104.4 166.1,104.4 166.7,104.4 167.3,104.4 167.9,104.4 168.5,104.4 169.1,104.4 169.7,104.4 170.3,104.4 170.9,104.4 171.5,104.4 172.1,104.4 172.6,104.4 173.2,104.4 173.8,104.4 174.4,104.4 175.0,104.4 175.6,104.4 176.2,104.4 176.8,104.4 177.4,104.4 178.0,104.4 178.6,104.4 179.2,104.4 179.8,104.4 180.4,104.4 181.0,104.4 181.6,104.4 182.2,104.4 182.7,104.4 183.3,104.4 183.9,104.4 184.5,104.4 185.1,104.4 185.7,104.4 186.3,104.4 186.9,104.4 187.5,104.4 188.1,104.4 188.7,104.4 189.3,104.4 189.9,104.4 190.5,104.4 191.1,103.1 191.7,103.1 192.3,103.1 192.9,102.1 193.4,102.1 194.0,102.1 194.6,102.1 195.2,102.1 195.8,102.1 196.4,102.1 197.0,102.1 197.6,102.1 198.2,102.1 198.8,102.1 199.4,102.1 200.0,102.1 200.6,102.1 201.2,102.1 201.8,102.1 202.4,102.1 203.0,102.1 203.6,102.1 204.1,102.1 204.7,102.1 205.3,102.1 205.9,102.1 206.5,102.1 207.1,102.1 207.7,102.1 208.3,102.1 208.9,102.1 209.5,102.1 210.1,102.1 210.7,102.1 211.3,102.1 211.9,102.1 212.5,102.1 213.1,102.1 213.7,102.1 214.2,102.1 214.8,102.1 215.4,102.1 216.0,102.1 216.6,100.2 217.2,100.3 217.8,100.3 218.4,100.3 219.0,100.3 219.6,100.3 220.2,100.2 220.8,100.2 221.4,100.8 222.0,100.8 222.6,100.8 223.2,100.8 223.8,100.8 224.4,100.8 224.9,100.8 225.5,100.8 226.1,100.8 226.7,100.8 227.3,101.4 227.9,101.4 228.5,100.9 229.1,101.4 229.7,101.4 230.3,101.4 230.9,101.4 231.5,101.4 232.1,91.0 232.7,91.0 233.3,88.2 233.9,81.3 234.5,81.2 235.1,81.2 235.6,81.2 236.2,81.9 236.8,80.8 237.4,82.9 238.0,82.9 238.6,82.9 239.2,82.9 239.8,82.9 240.4,82.9 241.0,82.9 241.6,82.9 242.2,82.9 242.8,76.0 243.4,76.0 244.0,76.0 244.6,76.0 245.2,76.0 245.8,76.0 246.3,76.0 246.9,76.0 247.5,76.0 248.1,76.0 248.7,76.0 249.3,76.0 249.9,76.0 250.5,76.0 251.1,76.1 251.7,76.8 252.3,76.8 252.9,76.8 253.5,76.8 254.1,76.8 254.7,76.8 255.3,76.8 255.9,76.8 256.4,76.8 257.0,76.8 257.6,76.8 258.2,76.8 258.8,76.8 259.4,76.8 260.0,76.8 260.6,76.8 261.2,76.8 261.8,76.8 262.4,76.8 263.0,76.8 263.6,76.8 264.2,76.8 264.8,76.8 265.4,76.8 266.0,76.8 266.6,76.8 267.1,76.8 267.7,76.8 268.3,76.8 268.9,76.8 269.5,76.8 270.1,76.8 270.7,76.8 271.3,76.8 271.9,76.8 272.5,76.8 273.1,76.8 273.7,76.8 274.3,76.8 274.9,76.8 275.5,76.8 276.1,76.8 276.7,76.8 277.3,76.8 277.8,76.8 278.4,76.8 279.0,78.2 279.6,78.8 280.2,78.8 280.8,79.7 281.4,79.7 282.0,79.7 282.6,79.7 283.2,79.7 283.8,79.7 284.4,79.7 285.0,79.7 285.6,79.7 286.2,79.7 286.8,79.7 287.4,79.7 287.9,79.7 288.5,79.7 289.1,76.7 289.7,76.3 290.3,76.3 290.9,76.3 291.5,76.3 292.1,76.3 292.7,77.8 293.3,77.8 293.9,77.8 294.5,77.1 295.1,79.0 295.7,79.0 296.3,79.0 296.9,79.0 297.5,79.0 298.1,79.0 298.6,79.0 299.2,79.0 299.8,79.0 300.4,79.0 301.0,79.0 301.6,79.0 302.2,79.0 302.8,79.0 303.4,79.0 304.0,79.0 304.6,79.0 305.2,79.0 305.8,79.0 306.4,79.0 307.0,79.0 307.6,79.0 308.2,78.9 308.8,78.9 309.3,78.9 309.9,78.9 310.5,78.9 311.1,78.9 311.7,78.9 312.3,78.9 312.9,78.9 313.5,78.9 314.1,78.9 314.7,78.9 315.3,78.3 315.9,78.3 316.5,78.9 317.1,78.9 317.7,78.9 318.3,78.9 318.9,78.9 319.5,78.9 320.0,78.9 320.6,78.9 321.2,78.9 321.8,78.9 322.4,78.9 323.0,78.9 323.6,78.9 324.2,78.9 324.8,78.9 325.4,78.9 326.0,78.9 326.6,78.9 327.2,78.9 327.8,80.4 328.4,80.4 329.0,84.5 329.6,84.5 330.1,84.5 330.7,84.5 331.3,84.5 331.9,84.5 332.5,84.5 333.1,84.5 333.7,84.5 334.3,84.9 334.9,87.2 335.5,87.2 336.1,87.2 336.7,87.2 337.3,87.2 337.9,87.2 338.5,87.1 339.1,84.8 339.7,85.3 340.3,85.3 340.8,85.3 341.4,85.3 342.0,85.3 342.6,85.3 343.2,85.3 343.8,85.3 344.4,85.3 345.0,85.3 345.6,85.3 346.2,85.3 346.8,78.9 347.4,78.9 348.0,78.9 348.6,76.9 349.2,76.4 349.8,76.4 350.4,76.4 351.0,76.6 351.5,76.6 352.1,76.6 352.7,76.6 353.3,76.6 353.9,77.6 354.5,77.6 355.1,77.6 355.7,77.6 356.3,75.8 356.9,75.8 357.5,75.8 358.1,75.8 358.7,75.8 359.3,75.8 359.9,76.9 360.5,76.9 361.1,76.9 361.6,78.5 362.2,78.5 362.8,78.5 363.4,71.4 364.0,71.4 364.6,72.9 365.2,72.9 365.8,72.9 366.4,72.9 367.0,72.9 367.6,72.9 368.2,72.9 368.8,72.9 369.4,72.9 370.0,72.9 370.6,72.9 371.2,72.9 371.8,72.9 372.3,72.9 372.9,76.6 373.5,76.6 374.1,76.6 374.7,76.6 375.3,76.6 375.9,71.6 376.5,71.6 377.1,71.6 377.7,71.6 378.3,71.6 378.9,69.9 379.5,71.0 380.1,71.0 380.7,71.0 381.3,71.0 381.9,71.0 382.5,71.0 383.0,71.0 383.6,71.0 384.2,71.0 384.8,71.0 385.4,70.3 386.0,70.3 386.6,70.6 387.2,64.9 387.8,64.9 388.4,64.9 389.0,64.9 389.6,64.9 390.2,64.9 390.8,64.9 391.4,64.9 392.0,64.9 392.6,64.9 393.2,64.9 393.7,64.9 394.3,64.9 394.9,13.7 395.5,13.7 396.1,13.7 396.7,13.7 397.3,13.7 397.9,13.7 398.5,13.7 399.1,13.7 399.7,10.8 400.3,11.2 400.9,11.2 401.5,11.2 402.1,11.2 402.7,11.2 403.3,11.2 403.8,11.2 404.4,11.2 405.0,10.0 405.6,10.6 406.2,10.6 406.8,10.6 407.4,10.6 408.0,10.6 408.6,11.6 409.2,11.6 409.8,11.6 410.4,11.6 411.0,11.6 411.6,11.6 412.2,11.6 412.8,11.6 413.4,11.6 414.0,11.6 414.5,11.5 415.1,11.5 415.7,11.5 416.3,11.5 416.9,11.5 417.5,11.5 418.1,11.5 418.7,11.5 419.3,11.5 419.9,11.5 420.5,11.5 421.1,11.5 421.7,11.5 422.3,11.5 422.9,11.5 423.5,11.5 424.1,11.5 424.7,11.5 425.2,11.5 425.8,11.5 426.4,11.5 427.0,11.5 427.6,11.5 428.2,11.5 428.8,11.5 429.4,11.5 430.0,11.5" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="430" cy="11.548702011987013" r="3" fill="#22c55e"/>
+        <text x="30" y="118" fill="rgba(255,255,255,.3)" font-size="8" font-family="Martian Mono,monospace">$-2</text>
+        <text x="430" y="16" fill="rgba(255,255,255,.3)" font-size="8" font-family="Martian Mono,monospace" text-anchor="end">$15010</text>
+        <text x="430" y="5.548702011987013" fill="#22c55e" font-size="9" font-family="Martian Mono,monospace" text-anchor="end" font-weight="600">+$14777</text>
+      </svg>
+    </div>
+              <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-top:12px">
+                <div class="metric"><span>Seeds in Soil</span><strong>1.9847 BNB</strong></div>
+                <div class="metric"><span>Current Value</span><strong>1.9843 BNB</strong></div>
+                <div class="metric"><span>Unharvested Yield</span><strong class="r">$-0 (+0.0%)</strong></div>
+                <div class="metric"><span>Barn Cash</span><strong>$28,004</strong></div>
+              </div>
+              <div class="split-grid" style="margin-top:12px">
+                <div><div class="split-h">Silo Inventory (2)</div>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">01</span>
+            <span class="pill" style="background:rgba(255,255,255,.08);color:var(--dim)"><1m</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x44446e301be5b189d74b1855e63c682a1dc1026d" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Score 93/100 · held <1m · FDV $11,267</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Seed Size</span><strong>0.9924 BNB</strong></div>
+            <div><span>Entry Field Value</span><strong>$11,267</strong></div>
+            <div><span>P&L</span><strong style="color:var(--dim)">Awaiting price update</strong></div>
+            <div><span>Entered</span><strong>Apr 15, 12:04</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">02</span>
+            <span class="pill" style="background:rgba(255,255,255,.08);color:var(--dim)"><1m</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xcb3679a259a16e7a282248ccbf79418474844444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Score 79/100 · held <1m · FDV $4,421</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Seed Size</span><strong>0.9924 BNB</strong></div>
+            <div><span>Entry Field Value</span><strong>$4,421</strong></div>
+            <div><span>P&L</span><strong style="color:var(--dim)">Awaiting price update</strong></div>
+            <div><span>Entered</span><strong>Apr 15, 12:04</strong></div>
+          </div>
+        </article></div>
+                <div><div class="split-h">Field Diary</div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            Scallion LP<br />
+            Entered the paper treasury as a new active position.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            Potato LP<br />
+            Entered the paper treasury as a new active position.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            Potato LP<br />
+            Added to the treasury watchlist for follow-up monitoring.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            Scallion LP<br />
+            Added to the treasury watchlist for follow-up monitoring.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            Potato LP<br />
+            Added to the treasury watchlist for follow-up monitoring.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            无家可归却快乐 · watched<br />
+            Added to the treasury watchlist for follow-up monitoring.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            Bean LP<br />
+            Added to the treasury watchlist for follow-up monitoring.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>2026-04-15T12:04:04.118Z</span>
+          <strong>
+            Scallion LP<br />
+            Added to the treasury watchlist for follow-up monitoring.
+          </strong>
+        </div></div>
+              </div>
+
+              <div class="split-h" style="margin-top:16px">&#x1F4CA; Harvest Almanac</div>
+              <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-top:6px">
+                <div class="metric"><span>Yield Rate</span><strong class="w">35%</strong></div>
+                <div class="metric"><span>ROI</span><strong class="g">+1193.3%</strong></div>
+                <div class="metric"><span>Realized P&L</span><strong class="g">+$14,777</strong></div>
+                <div class="metric"><span>Avg Hold</span><strong>3.3h</strong></div>
+              </div>
+              <div style="margin-top:8px">
+      <article class="candidate-card">
+        <div class="candidate-card__meta">
+          <span class="pill tone-hot">Vanished</span>
+        </div>
+        <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+          <div><span>Win / Loss</span><strong><span class="g">56</span> / <span class="r">218</span></strong></div>
+          <div><span>Yield Rate</span><strong>20.4%</strong></div>
+          <div><span>Total P&L</span><strong class="g">+$15,726</strong></div>
+          <div><span>Avg Hold</span><strong>8.0h</strong></div>
+          <div><span>Best Trade</span><strong class="g">+$7,689</strong></div>
+          <div><span>Worst Trade</span><strong class="r">$-408</strong></div>
+        </div>
+        <p class="candidate-thesis" style="margin-top:4px">Tokens: Scallion LP</p>
+      </article>
+      <article class="candidate-card">
+        <div class="candidate-card__meta">
+          <span class="pill tone-hot">Trailing Stop</span>
+        </div>
+        <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+          <div><span>Win / Loss</span><strong><span class="g">3</span> / <span class="r">0</span></strong></div>
+          <div><span>Yield Rate</span><strong>100.0%</strong></div>
+          <div><span>Total P&L</span><strong class="g">+$1,880</strong></div>
+          <div><span>Avg Hold</span><strong>3m</strong></div>
+          <div><span>Best Trade</span><strong class="g">+$1,028</strong></div>
+          <div><span>Worst Trade</span><strong class="r">$0</strong></div>
+        </div>
+        <p class="candidate-thesis" style="margin-top:4px">Tokens: 宝宝属鸡, Sunflower LP</p>
+      </article>
+      <article class="candidate-card">
+        <div class="candidate-card__meta">
+          <span class="pill tone-cold">Multi-Stage TP</span>
+        </div>
+        <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+          <div><span>Win / Loss</span><strong><span class="g">0</span> / <span class="r">397</span></strong></div>
+          <div><span>Yield Rate</span><strong>0.0%</strong></div>
+          <div><span>Total P&L</span><strong class="r">$-2,829</strong></div>
+          <div><span>Avg Hold</span><strong>6m</strong></div>
+          <div><span>Best Trade</span><strong class="g">+$0</strong></div>
+          <div><span>Worst Trade</span><strong class="r">$-613</strong></div>
+        </div>
+        <p class="candidate-thesis" style="margin-top:4px">Tokens: Scallion LP</p>
+      </article></div>
+
+              <div class="split-grid" style="margin-top:16px">
+                <div>
+                  <div class="split-h">&#x1F3C6; Biggest Harvests (top 15)</div>
+                  
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xf22ff54a7aac55b7bdceb966664ab20adbe22b3a" target="_blank" rel="noreferrer">Golden Wheat LP</a></span>
+        <strong>
+          <span class="g">+1240.4%</span> · Vanished · 3m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xb3b3685231999e9281624ca3411dcd44ebb12c82" target="_blank" rel="noreferrer">💎BULL</a></span>
+        <strong>
+          <span class="g">+252.3%</span> · Vanished · 5m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xfd5ec39ee2b104bef59da711bcfd6a50238cef0c" target="_blank" rel="noreferrer">🐸AND</a></span>
+        <strong>
+          <span class="g">+173.7%</span> · Vanished · 4m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xf4076a83ebd43bcbb934c9875b76b9c4e7149fd2" target="_blank" rel="noreferrer">🏆SUPE</a></span>
+        <strong>
+          <span class="g">+167.0%</span> · Vanished · 3m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x01906736e49403f8c18ac6fc5b905379185d2815" target="_blank" rel="noreferrer">运势链</a></span>
+        <strong>
+          <span class="g">+166.5%</span> · Trailing Stop · 3m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x007eda067d5dc3ba5a51eee005600bc16eb4f65a" target="_blank" rel="noreferrer">NOT</a></span>
+        <strong>
+          <span class="g">+156.0%</span> · Vanished · 3m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x7d8e04f76d645d58bdcace6e93bdba367205f586" target="_blank" rel="noreferrer">Sunflower LP</a></span>
+        <strong>
+          <span class="g">+137.5%</span> · Trailing Stop · 4m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x367caf42f4d2dae4e7a67cdba16cdc69803e73de" target="_blank" rel="noreferrer">HAT</a></span>
+        <strong>
+          <span class="g">+121.3%</span> · Vanished · 2m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x81c9dc9dbce4f38f2e487e77048a5832c7384c01" target="_blank" rel="noreferrer">Crypto Summer</a></span>
+        <strong>
+          <span class="g">+42.4%</span> · Vanished · 21.6h
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x007215ae85b2aac66cbcaf76b2b203183e6b4444" target="_blank" rel="noreferrer">Garlic LP</a></span>
+        <strong>
+          <span class="g">+74.5%</span> · Vanished · 3m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x272506b8bd694014a412220e9bba8d5255e8c27a" target="_blank" rel="noreferrer">OCTO</a></span>
+        <strong>
+          <span class="g">+70.0%</span> · Vanished · 3m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x7ffede9aff2e97e21e05b12a043556ea9b6a68fb" target="_blank" rel="noreferrer">PEANUTMOLTBOT</a></span>
+        <strong>
+          <span class="g">+68.2%</span> · Vanished · 3m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xd23c5fe570f2b9c8e05aab4716607856894e539a" target="_blank" rel="noreferrer">MEMEFI</a></span>
+        <strong>
+          <span class="g">+25.7%</span> · Vanished · 43m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x617c296c6ac099ebfb8e461369a7a689e13cd94e" target="_blank" rel="noreferrer">PUMPFUNHAT</a></span>
+        <strong>
+          <span class="g">+26.7%</span> · Vanished · 21m
+        </strong>
+      </div>
+      <div class="status-row">
+        <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xa857e773b8f4ff252397b68de981dc6613d5c2e5" target="_blank" rel="noreferrer">CANT</a></span>
+        <strong>
+          <span class="g">+25.4%</span> · Vanished · 20m
+        </strong>
+      </div>
+                </div>
+                <div>
+                  <div class="split-h">&#x1F440; Weather Watchlist (10)</div>
+                  
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xd0a7bb113a01cb02cd3f55284d29512c15544444" target="_blank" rel="noreferrer">Potato LP</a></span>
+          <strong>🟡 69/100 · FDV $5,074</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x4fa61fab7733f88683782d9a06c207f4b30d4444" target="_blank" rel="noreferrer">Scallion LP</a></span>
+          <strong>🟡 69/100 · FDV $4,823</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x95cc5d9915ec50973d3ecf574fa7af2f9df14444" target="_blank" rel="noreferrer">Potato LP</a></span>
+          <strong>🟡 64/100 · FDV $3,785</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x65a3415cbcf0e066d931a55ae81e279d32f64444" target="_blank" rel="noreferrer">无家可归却快乐</a></span>
+          <strong>🟡 63/100 · FDV $4,460</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xc6cb8953fa7000177748146838b6ef278b084444" target="_blank" rel="noreferrer">Bean LP</a></span>
+          <strong>🟡 63/100 · FDV $4,517</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x6dd7c82a10409963705dfd59fb9b4afda6174444" target="_blank" rel="noreferrer">Scallion LP</a></span>
+          <strong>🟡 63/100 · FDV $3,883</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xcfc207dc48662289773575aec2980bc108e24444" target="_blank" rel="noreferrer">Potato LP</a></span>
+          <strong>🟡 63/100 · FDV $3,749</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xb28d15395eaf135766f69f6391119adaaa5e4444" target="_blank" rel="noreferrer">Scallion LP</a></span>
+          <strong>🟡 63/100 · FDV $3,727</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xddeef1cf79eeb10037d1406399cf9dd824bc4444" target="_blank" rel="noreferrer">Carrot LP</a></span>
+          <strong>🟡 63/100 · FDV $4,056</strong>
+        </div>
+        <div class="status-row">
+          <span><a class="watchlist-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x258294959a6d8533d44def966b9ee406100e4444" target="_blank" rel="noreferrer">Carrot LP</a></span>
+          <strong>🟡 63/100 · FDV $4,283</strong>
+        </div>
+                </div>
+              </div>
+
+              <div class="split-h" style="margin-top:16px">&#x1F4E4; Cleared Fields (674)</div>
+              <div style="max-height:400px;overflow-y:auto;margin-top:6px">
+                
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">01</span>
+            <span class="pill tone-cold">-0.1%</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x444428a3d853214b9c301651fc14173ec55850d2" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Vanished · 1m · $11,556</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$11,556</strong></div>
+            <div><span>Exit</span><strong>$11,556</strong></div>
+            <div><span>P&L</span><strong class="r">$-0</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:04</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">02</span>
+            <span class="pill tone-cold">-0.1%</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xd1a22a75b8f27b88172a01ab7d25a917acf34444" target="_blank" rel="noreferrer">Corn LP</a></h3>
+          <p class="candidate-subtitle">Vanished · 1m · $4,193</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,193</strong></div>
+            <div><span>Exit</span><strong>$4,193</strong></div>
+            <div><span>P&L</span><strong class="r">$-0</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:04</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">03</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x274033c3e43adb88f790e9b1323848f859734444" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $4,032</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,032</strong></div>
+            <div><span>Exit</span><strong>$4,032</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">04</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x6fc76e9fefe38087c40a645020221dd31a874444" target="_blank" rel="noreferrer">Cabbage LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $4,259</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,259</strong></div>
+            <div><span>Exit</span><strong>$4,259</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">05</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x5f6f9873c4b88a15dd6aad83df89b09a19084444" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $4,089</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,089</strong></div>
+            <div><span>Exit</span><strong>$4,089</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">06</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x0eaa1599bc1deb910684d95d23d8f69c41a84444" target="_blank" rel="noreferrer">币泡泡</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $3,640</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$3,640</strong></div>
+            <div><span>Exit</span><strong>$3,640</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">07</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x46773a0809fe128484b67c6f0a0781a1f8734444" target="_blank" rel="noreferrer">Tomato LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $4,910</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,910</strong></div>
+            <div><span>Exit</span><strong>$4,910</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">08</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xf66527091a483191ae9e36a1cd9c137a79764444" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $4,862</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,862</strong></div>
+            <div><span>Exit</span><strong>$4,862</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">09</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xde3270c1a287307b1fd19bf14c85e3c4dbf64444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $4,189</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,189</strong></div>
+            <div><span>Exit</span><strong>$4,189</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">10</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x3e49382b4fc770dcd72b72d5d4c1e1c2f20f4444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $4,171</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,171</strong></div>
+            <div><span>Exit</span><strong>$4,171</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">11</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x357e9c9924b3b5d6438636053e0ecfc775ab4444" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $3,652</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$3,652</strong></div>
+            <div><span>Exit</span><strong>$3,652</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">12</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xa792b78b82c7f0fd801fb1f1b47666a1e85f4444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 1m · $3,633</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$3,633</strong></div>
+            <div><span>Exit</span><strong>$3,633</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:03</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">13</span>
+            <span class="pill tone-cold">-0.1%</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x62e84c4a8c268ff435a632ed4bb106932e024444" target="_blank" rel="noreferrer">Pumpkin LP</a></h3>
+          <p class="candidate-subtitle">Vanished · 1m · $3,888</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$3,888</strong></div>
+            <div><span>Exit</span><strong>$3,888</strong></div>
+            <div><span>P&L</span><strong class="r">$-0</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">14</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xf85b63173910e69ebd38097fe1e0ab93facb4444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 0m · $4,723</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,723</strong></div>
+            <div><span>Exit</span><strong>$4,723</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">15</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0x2f3aae115b1c37e7d3ad689e3e2b7ec6491a4444" target="_blank" rel="noreferrer">Corn LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 0m · $3,825</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$3,825</strong></div>
+            <div><span>Exit</span><strong>$3,825</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">16</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xa3b2ccf047d572e1df424662c6b2dff5aaa04444" target="_blank" rel="noreferrer">Pumpkin LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 0m · $4,354</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,354</strong></div>
+            <div><span>Exit</span><strong>$4,354</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">17</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xa16fec384cd2a86533dc72af308d128caddb4444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 0m · $4,124</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,124</strong></div>
+            <div><span>Exit</span><strong>$4,124</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">18</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xef7348789457758a4f57faed394e00c8b7344444" target="_blank" rel="noreferrer">chatcrypto</a></h3>
+          <p class="candidate-subtitle">Take Profit · 0m · $4,633</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$4,633</strong></div>
+            <div><span>Exit</span><strong>$4,633</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">19</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xc8cfc428ab51dac3cc3c52664d9c3e6f08294444" target="_blank" rel="noreferrer">Potato LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 0m · $3,774</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$3,774</strong></div>
+            <div><span>Exit</span><strong>$3,774</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">20</span>
+            <span class="pill " style="background:rgba(255,255,255,.08);color:var(--dim)">Flat</span>
+          </div>
+          <h3><a class="candidate-link" href="https://www.dextools.io/app/en/bnb/pair-explorer/0xa1c6a1e0d5b11ccc612163956bf51ab028b14444" target="_blank" rel="noreferrer">Scallion LP</a></h3>
+          <p class="candidate-subtitle">Take Profit · 0m · $3,600</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Entry</span><strong>$3,600</strong></div>
+            <div><span>Exit</span><strong>$3,600</strong></div>
+            <div><span>Closed</span><strong>Apr 15, 12:02</strong></div>
+          </div>
+        </article>
+              </div>
+            </div>
+          </details>
+
+          <details class="panel-accord" id="flywheel-section" open>
+            <summary class="panel-accord__sum">
+              <span class="panel-accord__title">&#x1F6DE; The Waterwheel</span>
+              <span class="panel-accord__meta">$14777 profit · 30 cycles · 59W/110L</span>
+              <span class="panel-accord__arr">&#x25BE;</span>
+            </summary>
+            <div class="panel-accord__body">
+              <p class="candidate-thesis" style="margin-bottom:8px">Every harvest spins the waterwheel: 70% buys fresh seeds for re-staking</p>
+              <div class="metric-grid" style="grid-template-columns:repeat(4,1fr)">
+                <div class="metric"><span>Total Harvest</span><strong class="g">$14777.44</strong></div>
+                <div class="metric"><span>Re-stake Seeds (70%)</span><strong class="y">$10344.21</strong></div>
+                <div class="metric"><span>Repair Tractors (15%)</span><strong style="color:#8b5cf6">$2216.62</strong></div>
+                <div class="metric"><span>Rations for Villagers (15%)</span><strong style="color:#f59e0b">$2216.62</strong></div>
+              </div>
+              <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-top:8px">
+                <div class="metric"><span>Waterwheel Turns</span><strong>30</strong></div>
+                <div class="metric"><span>Trailing Stop Saves</span><strong class="g">3</strong></div>
+                <div class="metric"><span>Smart Exit Saves</span><strong class="g">0</strong></div>
+                <div class="metric"><span>Win / Loss</span><strong><span class="g">59</span> / <span class="r">110</span></strong></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="panel-accord" id="treasury-section">
+            <summary class="panel-accord__sum">
+              <span class="panel-accord__title">&#x1F331; Planting Shed</span>
+              <span class="panel-accord__meta">0.9924 BNB/position · 0 eligible · 0 ledger</span>
+              <span class="panel-accord__arr">&#x25BE;</span>
+            </summary>
+            <div class="panel-accord__body">
+              <div class="split-h">Planting &amp; Staking Controls</div>
+              <p class="candidate-thesis" style="margin:-2px 0 6px" data-zh="仓位大小基于组合分配（~$619<strong>0.9924 BNB</strong>）。每日上限：<strong>2.9771 BNB</strong>。">Position sizing derived from portfolio allocation (~$619/position ≈ <strong>0.9924 BNB</strong>). Daily cap: <strong>2.9771 BNB</strong>.</p>
+              <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-card__label">Mode</div>
+      <div class="metric-card__val">live_buy_only</div>
+      <div class="metric-card__desc">Router fourmeme in dry-run mode.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Festival Prep</div>
+      <div class="metric-card__val">4/4</div>
+      <div class="metric-card__desc">Current live execution readiness checks.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Risk cap</div>
+      <div class="metric-card__val">0.9924 BNB</div>
+      <div class="metric-card__desc">Daily cap 2.9771 BNB.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Eligible lanes</div>
+      <div class="metric-card__val">0</div>
+      <div class="metric-card__desc">Candidates currently passing execution gates.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Cycle result</div>
+      <div class="metric-card__val">0/0/0</div>
+      <div class="metric-card__desc">Executed / dry-run / failed counts for the latest cycle.</div>
+    </div></div>
+              <div class="split-h" style="margin-top:12px">Greenhouse Sandbox</div>
+              <p class="candidate-thesis" style="margin:-2px 0 6px">Virtual capital model for signal tracking, scoring, and backtesting. Not real funds — used to evaluate which tokens the AI would allocate to and track P&L accuracy.</p>
+              <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-card__label">Greenhouse Capital</div>
+      <div class="metric-card__val">$10,000</div>
+      <div class="metric-card__desc">Simulated capital baseline for signal tracking &amp; backtesting.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Ready Seed</div>
+      <div class="metric-card__val">$6,500</div>
+      <div class="metric-card__desc">Simulated capital available for new allocation.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Deployed</div>
+      <div class="metric-card__val">1.9847 BNB</div>
+      <div class="metric-card__desc">Simulated capital assigned to active positions.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Seed Reserve</div>
+      <div class="metric-card__val">$5,262</div>
+      <div class="metric-card__desc">Remaining unallocated simulated capacity.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Reserve</div>
+      <div class="metric-card__val">$3,500 / 35%</div>
+      <div class="metric-card__desc">Capital held back under reserve discipline.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Richest Field</div>
+      <div class="metric-card__val">Scallion LP</div>
+      <div class="metric-card__desc">Top name by current treasury conviction.</div>
+    </div></div>
+              <div class="split-h" style="margin-top:12px">Seed Allocation</div>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">01</span>
+            <span class="pill tone-hot">🌱 PLANT</span>
+          </div>
+          <h3>Scallion LP</h3>
+          <p class="candidate-subtitle">Score 93/100 · new_pools</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Seed Allocation</span><strong>$619</strong></div>
+            <div><span>Seed Budget</span><strong>$619</strong></div>
+            <div><span>Weight</span><strong>6.2%</strong></div>
+            <div><span>Field Value</span><strong>$619</strong></div>
+            <div><span>Score</span><strong>93/100</strong></div>
+            <div><span>Liquidity</span><strong>$10,726</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">02</span>
+            <span class="pill tone-hot">🌱 PLANT</span>
+          </div>
+          <h3>Potato LP</h3>
+          <p class="candidate-subtitle">Score 79/100 · new_pools</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Seed Allocation</span><strong>$619</strong></div>
+            <div><span>Seed Budget</span><strong>$619</strong></div>
+            <div><span>Weight</span><strong>6.2%</strong></div>
+            <div><span>Field Value</span><strong>$619</strong></div>
+            <div><span>Score</span><strong>79/100</strong></div>
+            <div><span>Liquidity</span><strong>$3,537</strong></div>
+          </div>
+        </article>
+              <div class="split-h" style="margin-top:12px">Planting Calendar</div>
+        <div class="status-row">
+          <span>Scallion LP</span>
+          <strong>
+            93/100 · blocked · 0.9924 BNB<br />
+            <span style="opacity:.6">Allocation: $619 (0.9924 BNB)</span><br />
+            1h volume 555 is below the sustained-heat gate.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>Potato LP</span>
+          <strong>
+            79/100 · blocked · 0.9924 BNB<br />
+            <span style="opacity:.6">Allocation: $619 (0.9924 BNB)</span><br />
+            Valuation 4421 is below the minimum sustainable-entry floor.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>Potato LP</span>
+          <strong>
+            69/100 · blocked · 0.9924 BNB<br />
+            <span style="opacity:.6">Allocation: —</span><br />
+            Candidate is not in simulate_buy state.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>Scallion LP</span>
+          <strong>
+            69/100 · blocked · 0.9924 BNB<br />
+            <span style="opacity:.6">Allocation: —</span><br />
+            Candidate is not in simulate_buy state.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>Potato LP</span>
+          <strong>
+            64/100 · blocked · 0.9924 BNB<br />
+            <span style="opacity:.6">Allocation: —</span><br />
+            Candidate is not in simulate_buy state.
+          </strong>
+        </div>
+        <div class="status-row">
+          <span>无家可归却快乐</span>
+          <strong>
+            63/100 · blocked · 0.9924 BNB<br />
+            <span style="opacity:.6">Allocation: —</span><br />
+            Candidate is not in simulate_buy state.
+          </strong>
+        </div>
+              <div class="split-h" style="margin-top:12px">Planting Ledger</div><p class="candidate-thesis">No planting actions yet</p>
+            </div>
+          </details>
+
+          <details class="panel-accord" id="distribution-section">
+            <summary class="panel-accord__sum">
+              <span class="panel-accord__title">&#x1F33E; Harvest Festival</span>
+              <span class="panel-accord__meta">7 holders · $805 pool · standby</span>
+              <span class="panel-accord__arr">&#x25BE;</span>
+            </summary>
+            <div class="panel-accord__body">
+              <p class="candidate-thesis" style="margin-bottom:10px">The waterwheel sets aside 15% of every harvest for village rations. Qualified Farmer Agent villagers receive a proportional share each cycle.</p>
+              <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-card__label">Registered Villagers</div>
+      <div class="metric-card__val">7</div>
+      <div class="metric-card__desc">Qualified Farmer Agent villagers.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Festival Granary</div>
+      <div class="metric-card__val">$805</div>
+      <div class="metric-card__desc">From treasury flywheel (15% airdrop reserve).</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Ration Recipients</div>
+      <div class="metric-card__val">0</div>
+      <div class="metric-card__desc">Qualified for this distribution cycle.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Festival Prep</div>
+      <div class="metric-card__val">2/6</div>
+      <div class="metric-card__desc">Standby — awaiting activation.</div>
+    </div></div>
+              <div class="split-h" style="margin-top:12px">Festival Prep Checklist</div>
+        <div class="status-row">
+          <span>Kitchen live</span>
+          <strong>TODO<br />Turn on the live kitchen once the commune is ready to distribute real rations.</strong>
+        </div>
+        <div class="status-row">
+          <span>Festival list loaded</span>
+          <strong>TODO<br />Load the final harvest recipient list for this round.</strong>
+        </div>
+        <div class="status-row">
+          <span>BNB RPC configured</span>
+          <strong>READY<br />BNB RPC is configured.</strong>
+        </div>
+        <div class="status-row">
+          <span>Asset token configured</span>
+          <strong>TODO<br />Pick the live reward asset for the festival kitchen.</strong>
+        </div>
+        <div class="status-row">
+          <span>Asset total amount configured</span>
+          <strong>TODO<br />Finalize the total reward size after harvest accounting closes.</strong>
+        </div>
+        <div class="status-row">
+          <span>Head chef wallet ready</span>
+          <strong>READY<br />Dry-run mode does not require live wallet confirmation.</strong>
+        </div>
+              <div class="split-h" style="margin-top:12px">Villagers on the List</div><p class="candidate-thesis">The final list locks in after harvest accounting. Until then, the local backend fills this panel with demo villagers.</p>
+              <div class="split-h" style="margin-top:12px">Ration Ledger</div><p class="candidate-thesis">As soon as a villager claims a ration, the ledger appears here automatically.</p>
+            </div>
+          </details>
+
+          <details class="panel-accord" id="goo-section">
+            <summary class="panel-accord__sum">
+              <span class="panel-accord__title">&#x1F69C; Farmhand Market &amp; Tractor Upgrades</span>
+              <span class="panel-accord__meta">8 agents · 0 active · 7 acquirable</span>
+              <span class="panel-accord__arr">&#x25BE;</span>
+            </summary>
+            <div class="panel-accord__body">
+              <p class="candidate-thesis" style="margin-bottom:8px">8 autonomous farmhands compete with different field styles. The best workers become upgrade candidates, and their instincts are folded back into Farmer Agent's tractor brain.</p>
+              
+              <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px">
+                <div class="metric"><span>Total Agents</span><strong>8</strong></div>
+                <div class="metric"><span>Active</span><strong class="g">0</strong></div>
+                <div class="metric"><span>Avg Yield Rate</span><strong class="g">13.9%</strong></div>
+                <div class="metric"><span>Total P&L</span><strong class="g">+$25.37</strong></div>
+              </div>
+              <div class="split-h">Farmhand Fleet (8)</div>
+              <div style="max-height:360px;overflow-y:auto;margin-top:6px">
+                
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#1</span>
+            <span class="pill tone-warm">⚫ Steady Auntie</span>
+          </div>
+          <h3>Old Li Tractor</h3>
+          <p class="candidate-subtitle">$$KAPP · Score 54/100 · 3 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.1016 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">35.3%</strong></div>
+            <div><span>P&L</span><strong class="g">+$15.33</strong></div>
+            <div><span>Trades</span><strong>31</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#2</span>
+            <span class="pill tone-warm">🟡 Quick Sickle</span>
+          </div>
+          <h3>Aunt Wang Sprinkler</h3>
+          <p class="candidate-subtitle">$$THET · Score 38/100 · 0 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.0835 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">17.9%</strong></div>
+            <div><span>P&L</span><strong class="g">+$7.53</strong></div>
+            <div><span>Trades</span><strong>56</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#3</span>
+            <span class="pill tone-warm">🟡 Night Irrigator</span>
+          </div>
+          <h3>Harvester 3000</h3>
+          <p class="candidate-subtitle">$$FLUX · Score 30/100 · 0 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.0030 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">13.3%</strong></div>
+            <div><span>P&L</span><strong class="g">+$1.12</strong></div>
+            <div><span>Trades</span><strong>30</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#4</span>
+            <span class="pill tone-warm">🔴 Market Gossip</span>
+          </div>
+          <h3>Mule Cart</h3>
+          <p class="candidate-subtitle">$$PULS · Score 26/100 · 0 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.0000 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">16.7%</strong></div>
+            <div><span>P&L</span><strong class="g">+$3.46</strong></div>
+            <div><span>Trades</span><strong>24</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#5</span>
+            <span class="pill tone-warm">🔴 Turbo Harvester</span>
+          </div>
+          <h3>Red Scythe</h3>
+          <p class="candidate-subtitle">$$FLUX · Score 19/100 · 0 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.0000 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">6.7%</strong></div>
+            <div><span>P&L</span><strong class="g">+$0.19</strong></div>
+            <div><span>Trades</span><strong>30</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#6</span>
+            <span class="pill tone-warm">🔴 Barn Bookkeeper</span>
+          </div>
+          <h3>Young Chen Seeder</h3>
+          <p class="candidate-subtitle">$$HELI · Score 18/100 · 0 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.0000 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">6.7%</strong></div>
+            <div><span>P&L</span><strong class="r">$-1.11</strong></div>
+            <div><span>Trades</span><strong>30</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#7</span>
+            <span class="pill tone-warm">🔴 Soil Inspector</span>
+          </div>
+          <h3>Uncle Wu Soil Reader</h3>
+          <p class="candidate-subtitle">$$DELT · Score 18/100 · 0 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.0000 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">6.7%</strong></div>
+            <div><span>P&L</span><strong class="r">$-1.11</strong></div>
+            <div><span>Trades</span><strong>30</strong></div>
+          </div>
+        </article>
+        <article class="candidate-card">
+          <div class="candidate-card__meta">
+            <span class="candidate-rank">#8</span>
+            <span class="pill tone-warm">🔴 Storm Chaser</span>
+          </div>
+          <h3>Lightning Thresher</h3>
+          <p class="candidate-subtitle">$$LAMB · Score 17/100 · 0 positions</p>
+          <div class="candidate-stats" style="grid-template-columns:1fr 1fr">
+            <div><span>Treasury</span><strong>0.0000 BNB</strong></div>
+            <div><span>Yield Rate</span><strong class="g">7.7%</strong></div>
+            <div><span>P&L</span><strong class="r">$-0.04</strong></div>
+            <div><span>Trades</span><strong>26</strong></div>
+          </div>
+        </article>
+              </div>
+              <div class="split-h" style="margin-top:12px">Tractor Upgrades</div>
+              <div style="padding:4px 0">
+                <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
+                  <div class="metric"><span>Acquired</span><strong>1</strong></div>
+                  <div class="metric"><span>Acquirable</span><strong class="y">7</strong></div>
+                  <div class="metric"><span>Best Score</span><strong class="g">38/100</strong></div>
+                </div>
+                
+                <div style="margin-top:8px">
+                  <div class="status-row"><span>🟡 Aunt Wang Sprinkler</span><strong>Score 38/100 · Quick Sickle</strong></div><div class="status-row"><span>🟡 Harvester 3000</span><strong>Score 30/100 · Night Irrigator</strong></div><div class="status-row"><span>⚪ Mule Cart</span><strong>Score 26/100 · Market Gossip</strong></div>
+                </div>
+              </div>
+              <p class="candidate-thesis" style="margin-top:8px"><a href="goo.html" style="color:var(--yellow)">View full Farmhand Arena →</a></p>
+            </div>
+          </details>
+        </div>
+
+      </div><!-- /main -->
+
+      <!-- ══ RIGHT ASIDE ═══════════════════════════ -->
+      <div class="aside">
+
+        <!-- Live Overview -->
+        <div class="aside-block">
+          <div class="aside-title">&#x1F4CA; Season Overview</div>
+          <div class="aside-big" style="color:rgba(255,255,255,0.5); font-size:0.85rem; margin-bottom:4px">GREENHOUSE SANDBOX</div>
+          <div class="aside-sub" style="margin-bottom:6px">Last scan: 12:04:13</div>
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:8px">APY Radar</div>
+          <div class="aside-stat"><span>Scanned</span><strong class="w">12</strong></div>
+          <div class="aside-stat"><span>Buy-ready</span><strong class="g">2</strong></div>
+          <div class="aside-stat"><span>Top signal</span><strong class="y">Scallion LP</strong></div>
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:8px">Silo</div>
+          <div class="aside-stat"><span>Active</span><strong class="w">2</strong></div>
+          <div class="aside-stat"><span>Watching</span><strong class="w">10</strong></div>
+          <div class="aside-stat"><span>Exited</span><strong class="w">674</strong></div>
+          <div class="aside-stat"><span>Win rate</span><strong class="w">35%</strong></div>
+          <div class="aside-stat"><span>ROI</span><strong class="g">+1193.3%</strong></div>
+          <div class="aside-stat"><span>Sim. P&L</span><strong class="g">$14,777</strong></div>
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:8px">Planting</div>
+          <div class="aside-stat"><span>Per position</span><strong class="y">0.9924 BNB</strong></div>
+          <div class="aside-stat"><span>Executed</span><strong class="g">0</strong></div>
+          <div class="aside-stat"><span>Trades</span><strong class="w">0</strong></div>
+        </div>
+
+        <!-- Recent Signals -->
+        <div class="aside-block">
+          <div class="aside-title">&#x1F327; Weather Forecast</div>
+          <div class="aside-stat">
+            <span>Storm Alert</span>
+            <strong class="y">Potato LP APY sliding</strong>
+          </div>
+          <div class="aside-stat">
+            <span>Clear Skies</span>
+            <strong class="g">Scallion LP ready to plant</strong>
+          </div>
+          <div class="aside-stat">
+            <span>Frost Risk</span>
+            <strong class="y">Cabbage LP needs watching</strong>
+          </div>
+          <div class="aside-stat">
+            <span>Irrigation</span>
+            <strong class="g">Sunflower LP volume rising</strong>
+          </div>
+          <div class="aside-stat">
+            <span>Retreat</span>
+            <strong class="w">Low-yield pools draining</strong>
+          </div>
+        </div>
+
+        <!-- Event Feed -->
+        <div class="aside-block">
+          <div class="aside-title">&#x1F4C5; Field Log</div>
+          <div id="event-timeline" class="evt-timeline" style="max-height:200px">
+            <div class="evt-timeline__empty" style="font-size:11px">Waiting for events&hellip;</div>
+          </div>
+        </div>
+
+
+      </div><!-- /aside -->
+
+    </div><!-- /content-area -->
+  </div><!-- /layout -->
+
+  <script>
+  (function() {
+    "use strict";
+
+    /* ── ElizaCloud connect ── */
+    function doFinalPollThenReload(sid,attempt){
+      attempt=attempt||0;
+      fetch('/api/eliza-cloud/hosted/poll?session='+encodeURIComponent(sid),{credentials:'same-origin'}).then(function(r){return r.json();}).catch(function(){return {};}).then(function(d){
+        if((d&&d.status==='authenticated')||attempt>=5){window.location.href='cloud/agents.html';return;}
+        setTimeout(function(){doFinalPollThenReload(sid,attempt+1);},1200);
+      });
+    }
+    function openCloudAuth(btn){
+      if(btn)btn.style.opacity='0.5';
+      fetch('/api/eliza-cloud/hosted/start',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){
+        if(!data.loginUrl){window.location.href='/auth/eliza-cloud?popup=1';return;}
+        var p=window.open(data.loginUrl,'elizacloud-auth','width=500,height=640,scrollbars=yes');
+        if(!p){window.location.href=data.loginUrl;return;}
+        if(data.mode==='cli-session'){var count=0,closed=false;var ti=setInterval(function(){count++;var c;try{c=p.closed;}catch(e){c=true;}if(c&&!closed){closed=true;clearInterval(ti);if(btn)btn.style.opacity='';doFinalPollThenReload(data.sessionId);return;}if(count>90){clearInterval(ti);if(btn)btn.style.opacity='';doFinalPollThenReload(data.sessionId);return;}fetch('/api/eliza-cloud/hosted/poll?session='+encodeURIComponent(data.sessionId),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(pd){if(pd.status==='authenticated'){clearInterval(ti);try{p.close();}catch(e){}window.location.href='cloud/agents.html';}}).catch(function(){});},1500);}else{var closeTi=setInterval(function(){try{if(p.closed){clearInterval(closeTi);window.location.href='cloud/agents.html';}}catch(e){}},800);}
+      }).catch(function(){window.location.href='/auth/eliza-cloud?popup=1';});
+    }
+    function openLocalTractorCloud(e){
+      if(e)e.preventDefault();
+      window.location.href='cloud/agents.html';
+    }
+    var scb=document.getElementById('sidebar-cloud-btn');
+    if(scb){scb.addEventListener('click',openLocalTractorCloud);}
+    var mcb=document.getElementById('mobile-cloud-btn');
+    if(mcb){mcb.addEventListener('click',openLocalTractorCloud);}
+
+    /* ── Clock ── */
+    function updateTime() {
+      var el = document.getElementById('tb-time');
+      if (el) el.textContent = new Date().toLocaleTimeString('en-US', {hour12: false});
+    }
+    updateTime(); setInterval(updateTime, 1000);
+
+    /* ── Theme toggle ── */
+    window.toggleTheme = function() {
+      var root = document.documentElement;
+      var isLight = root.getAttribute('data-theme') === 'light';
+      var next = isLight ? 'dark' : 'light';
+      root.setAttribute('data-theme', next);
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = next === 'light' ? '🌙' : '☀';
+      try { localStorage.setItem('elizaok-theme', next); } catch(e){}
+    };
+    (function(){
+      var saved = (function(){ try { return localStorage.getItem('elizaok-theme'); } catch(e){ return null; } }());
+      if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        var btn = document.getElementById('theme-toggle');
+        if (btn) btn.textContent = '🌙';
+      }
+    })();
+
+    /* ── Dot canvas ── */
+    var canvas = document.getElementById('dot-canvas');
+    var ctx = canvas.getContext('2d');
+    var t = 0;
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    function getDotColor() {
+      var light = document.documentElement.getAttribute('data-theme') === 'light';
+      return light ? '20,20,18' : '255,255,255';
+    }
+    function drawDots() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      var sp = 20, cols = Math.ceil(canvas.width/sp)+1, rows = Math.ceil(canvas.height/sp)+1;
+      var cx = canvas.width/2, cy = canvas.height/2;
+      var dc = getDotColor();
+      for (var i = 0; i < cols; i++) {
+        for (var j = 0; j < rows; j++) {
+          var x = i*sp, y = j*sp;
+          var dx = x-cx, dy = y-cy, dist = Math.sqrt(dx*dx+dy*dy);
+          var w1 = Math.sin(dist*0.012-t*2.0), w2 = Math.sin(x*0.01)*Math.cos(y*0.01), w3 = Math.sin((x+y)*0.008-t*1.5);
+          var c = (w1+w2+w3)/3;
+          var sz = Math.max(0.2, 0.3+(c+1)*0.95), al = Math.max(0.012, 0.018+(c+1)*0.1);
+          ctx.beginPath(); ctx.arc(x,y,sz,0,Math.PI*2);
+          ctx.fillStyle='rgba('+dc+','+al+')'; ctx.fill();
+        }
+      }
+      t += 0.016; requestAnimationFrame(drawDots);
+    }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas(); drawDots();
+
+    /* ── Nav / sidebar quick actions ── */
+    document.querySelectorAll('[data-nav]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var tgt = this.getAttribute('data-nav');
+        if(tgt === 'overview') return;
+        var el = document.getElementById(tgt+'-section');
+        if (el) { el.open = true; setTimeout(function(){ el.scrollIntoView({behavior:'smooth',block:'start'}); }, 60); }
+      });
+    });
+
+    /* ── Feature dock cards → scroll to accordion ── */
+    document.querySelectorAll('.feature-card[data-modal]').forEach(function(card) {
+      card.addEventListener('click', function() {
+        var tgt = this.getAttribute('data-modal');
+        var el = document.getElementById(tgt);
+        if (el) { el.open = true; setTimeout(function(){ el.scrollIntoView({behavior:'smooth',block:'start'}); }, 60); }
+      });
+    });
+
+    /* ── Cloud auth ── */
+    function doFinalPollThenReload(sessionId, attempt) {
+      attempt = attempt || 0;
+      fetch('/api/eliza-cloud/hosted/poll?session=' + encodeURIComponent(sessionId), { credentials: 'same-origin' })
+        .then(function(r){ return r.json(); })
+        .catch(function(){ return {}; })
+        .then(function(d){ if ((d && d.status === 'authenticated') || attempt >= 5) { window.location.reload(); return; } setTimeout(function(){ doFinalPollThenReload(sessionId, attempt + 1); }, 1200); });
+    }
+    function openCloudAuth(btn) {
+      if (btn) btn.style.opacity = '0.5';
+      fetch('/api/eliza-cloud/hosted/start', { method: 'POST', headers: {'content-type':'application/json'}, credentials: 'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+          if (!data.loginUrl) { window.location.href = '/auth/eliza-cloud?popup=1'; return; }
+          var p = window.open(data.loginUrl, 'elizacloud-auth', 'width=500,height=640,scrollbars=yes');
+          if (!p) { window.location.href = data.loginUrl; return; }
+          if (data.mode === 'cli-session') {
+            var count = 0;
+            var popupWasClosed = false;
+            var ti = setInterval(function() {
+              count++;
+              var closed = (function(){ try{return p.closed;}catch(e){return true;} }());
+              if (closed && !popupWasClosed) {
+                popupWasClosed = true;
+                clearInterval(ti);
+                if (btn) btn.style.opacity = '';
+                doFinalPollThenReload(data.sessionId);
+                return;
+              }
+              if (count > 90) {
+                clearInterval(ti);
+                if (btn) btn.style.opacity = '';
+                doFinalPollThenReload(data.sessionId);
+                return;
+              }
+              fetch('/api/eliza-cloud/hosted/poll?session=' + encodeURIComponent(data.sessionId), { credentials: 'same-origin' })
+                .then(function(r){ return r.json(); })
+                .then(function(pd) {
+                  if (pd.status === 'authenticated') {
+                    clearInterval(ti);
+                    try { p.close(); } catch(e) {}
+                    window.location.reload();
+                  }
+                }).catch(function(){});
+            }, 1500);
+          } else {
+            var closeTi = setInterval(function() {
+              try { if (p.closed) { clearInterval(closeTi); window.location.reload(); } } catch(e) {}
+            }, 800);
+          }
+        })
+        .catch(function() { window.location.href = '/auth/eliza-cloud?popup=1'; });
+    }
+    document.querySelectorAll('[data-cloud-hosted-auth]').forEach(function(btn) {
+      btn.addEventListener('click', function() { openCloudAuth(this); });
+    });
+
+    /* ── Animate bars ── */
+    setTimeout(function() {
+      document.querySelectorAll('.mon-fill,.progress-fill,.mini-fill').forEach(function(el) {
+        var w = el.style.width; el.style.width = '0%';
+        setTimeout(function(){ el.style.width = w; }, 100+Math.random()*400);
+      });
+    }, 200);
+
+    // Smart signal panel auto-refresh
+    function refreshSmartSignalPanel() {
+      fetch('/api/market-intel/signals').then(function(r){ return r.json(); }).then(function(data) {
+        var badge = document.getElementById('smart-signal-badge');
+        var list = document.getElementById('smart-signal-list');
+        if (!badge || !list) return;
+        if (data.critical > 0) {
+          badge.className = 'panel__badge pb-red';
+          badge.textContent = data.critical + ' CRITICAL';
+        } else if (data.warning > 0) {
+          badge.className = 'panel__badge pb-yellow';
+          badge.textContent = data.warning + ' WARN';
+        } else {
+          badge.className = 'panel__badge pb-green';
+          badge.textContent = 'OK';
+        }
+        if (!data.signals || data.signals.length === 0) {
+          list.innerHTML = '<div style="font-size:11px;color:var(--dim)">No active signals</div>';
+          return;
+        }
+        var html = data.signals.filter(function(s){ return s.severity !== 'ok'; }).slice(0, 6).map(function(s) {
+          var color = s.severity === 'critical' ? 'var(--red)' : 'var(--yellow)';
+          var icon = s.severity === 'critical' ? '&#x1F6A8;' : '&#x26A0;';
+          return '<div class="recent-item" style="border-left:2px solid '+color+';padding-left:8px;margin-bottom:6px">' +
+            '<div class="recent-item__sym" style="color:'+color+';font-size:11px">'+icon+' '+s.tokenSymbol+'</div>' +
+            '<div class="recent-item__meta" style="font-size:10px">'+s.reasons.slice(0,2).join(' · ')+'</div>' +
+            '</div>';
+        }).join('');
+        if (!html) html = '<div style="font-size:11px;color:var(--green)">All positions healthy</div>';
+        list.innerHTML = html + '<div style="font-size:9px;color:var(--dim);margin-top:6px">Scanned: ' + data.totalScanned + ' positions &middot; ' + (data.scannedAt ? new Date(data.scannedAt).toLocaleTimeString() : 'pending') + '</div>';
+      }).catch(function(){});
+    }
+    refreshSmartSignalPanel();
+    setInterval(refreshSmartSignalPanel, 30000);
+
+    // Absorption panel
+    function refreshAbsorptionPanel() {
+      fetch('/api/absorption/status').then(function(r){ return r.json(); }).then(function(d) {
+        var el = document.getElementById('abs-count');
+        if (el) el.textContent = d.totalAbsorbed;
+        var kol = document.getElementById('abs-kol');
+        if (kol) kol.textContent = (d.scoreWeightBoosts?.kolWeight ?? 1).toFixed(1) + 'x';
+        var holder = document.getElementById('abs-holder');
+        if (holder) holder.textContent = (d.scoreWeightBoosts?.holderWeight ?? 1).toFixed(1) + 'x';
+        var hist = document.getElementById('abs-history');
+        if (!hist) return;
+        if (!d.absorptions || d.absorptions.length === 0) {
+          hist.innerHTML = '<span style="color:var(--dim)">No tractor upgrades yet<a href="/goo" style="color:var(--green)">Visit the Farmhand Arena</a>.</span>';
+          return;
+        }
+        hist.innerHTML = d.absorptions.slice(-5).reverse().map(function(a) {
+          var changes = a.parameterChanges.map(function(c){ return c.param+': '+c.before+' → '+c.after; }).join(', ') || 'No parameter changes';
+          return '<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)">' +
+            '<strong style="color:var(--green)">' + a.agentName + '</strong> <span style="opacity:.5">(' + a.strategyLabel + ', ' + a.winRate.toFixed(0) + '% WR)</span><br>' +
+            '<span style="font-size:10px;opacity:.6">' + changes + '</span></div>';
+        }).join('');
+      }).catch(function(){});
+    }
+    refreshAbsorptionPanel();
+    setInterval(refreshAbsorptionPanel, 30000);
+
+    // ── Event Timeline ──
+    var evtIcons = {
+      trade_buy:'🟢', trade_sell:'🔴', smart_exit:'⚠️',
+      acquisition:'🧬', respawn:'🚀', trailing_stop:'🛡️', kol_exit:'👑'
+    };
+    var evtClasses = { trade_buy:'buy', trade_sell:'sell', smart_exit:'smart_exit', acquisition:'acquisition', respawn:'respawn' };
+    function refreshTimeline() {
+      fetch('/api/notifications').then(function(r){return r.json();}).then(function(d) {
+        var el = document.getElementById('event-timeline');
+        if (!el || !d.notifications || d.notifications.length === 0) return;
+        var html = d.notifications.slice(0, 25).map(function(n) {
+          var t = new Date(n.timestamp);
+          var timeStr = t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+          return '<div class="evt-item evt-item--'+(evtClasses[n.type]||'')+'">'+
+            '<div class="evt-item__icon">'+(evtIcons[n.type]||'🔔')+'</div>'+
+            '<div class="evt-item__body"><div class="evt-item__title">'+n.title+'</div><div class="evt-item__detail">'+n.detail+'</div></div>'+
+            '<div class="evt-item__time">'+timeStr+'</div></div>';
+        }).join('');
+        el.innerHTML = html;
+      }).catch(function(){});
+    }
+    refreshTimeline();
+    setInterval(refreshTimeline, 15000);
+
+    // ── Live Notification Toasts (only show new ones, remember seen IDs) ──
+    var lastNotifSeq = 0;
+    var notifContainer = document.getElementById('notif-toast-area');
+    var notifIcon = {
+      trade_buy: '🟢', trade_sell: '🔴', smart_exit: '⚠️',
+      acquisition: '🧬', respawn: '🚀', trailing_stop: '🛡️', kol_exit: '👑'
+    };
+    var notifCls = { info: 'nt-info', warning: 'nt-warn', critical: 'nt-crit', success: 'nt-ok' };
+    var seenNotifIds = {};
+    try {
+      var stored = sessionStorage.getItem('elizaok-seen-notifs');
+      if (stored) seenNotifIds = JSON.parse(stored);
+    } catch(e) {}
+    function saveSeenNotifs() { try { sessionStorage.setItem('elizaok-seen-notifs', JSON.stringify(seenNotifIds)); } catch(e) {} }
+    var firstPoll = true;
+    function pollNotifications() {
+      fetch('/api/notifications').then(function(r){ return r.json(); }).then(function(d) {
+        if (!d.notifications || d.seq <= lastNotifSeq) return;
+        lastNotifSeq = d.seq;
+        if (firstPoll) {
+          firstPoll = false;
+          d.notifications.forEach(function(n) { seenNotifIds[n.id] = 1; });
+          saveSeenNotifs();
+          return;
+        }
+        var fresh = d.notifications.filter(function(n) {
+          return !seenNotifIds[n.id] && !document.getElementById(n.id);
+        }).slice(0, 3);
+        fresh.reverse().forEach(function(n) {
+          seenNotifIds[n.id] = 1;
+          var el = document.createElement('div');
+          el.id = n.id;
+          el.className = 'nt-toast ' + (notifCls[n.severity] || 'nt-info');
+          el.style.position = 'relative';
+          el.style.overflow = 'hidden';
+          function dismiss() { if (el._gone) return; el._gone = true; el.classList.add('nt-hide'); el.classList.remove('nt-show'); setTimeout(function() { el.remove(); }, 350); }
+          el.innerHTML = '<span class="nt-icon">' + (notifIcon[n.type] || '🔔') + '</span>' +
+            '<div class="nt-body"><strong>' + n.title + '</strong><span class="nt-detail">' + n.detail + '</span></div>' +
+            '<button class="nt-close">&times;</button>' +
+            '<div class="nt-progress"></div>';
+          el.querySelector('.nt-close').addEventListener('click', dismiss);
+          notifContainer.prepend(el);
+          setTimeout(function() { el.classList.add('nt-show'); }, 20);
+          setTimeout(dismiss, 5000);
+        });
+        saveSeenNotifs();
+      }).catch(function(){});
+    }
+    pollNotifications();
+    setInterval(pollNotifications, 10000);
+
+  })();
+  </script>
+  <script src="../assets/dashboard-live.js"></script>
+</body>
+</html>
