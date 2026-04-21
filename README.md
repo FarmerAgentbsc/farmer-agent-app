@@ -6,8 +6,8 @@
 
 本项目已经跨越了纯前端演示阶段，进化为一个包含 Node 后端、Postgres 存储和真实链上 RPC 监听的全栈工程。
 
-## 🌍 线上预览: farmeragent.forum
-
+## 🌍 线上预览: https://farmeragent.forum/
+## 🐦 推特账号: https://x.com/Farmer_Agent
 ## 🚜 农场架构 (Architecture)
 
 我们的代码库被划分为以下几个核心产区：
