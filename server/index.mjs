@@ -1,11 +1,12 @@
 import { createServer } from "node:http";
-import { access } from "node:fs/promises";
-import { createReadStream } from "node:fs";
-import { extname, join, normalize, resolve } from "node:path";
+import { open } from "node:fs/promises";
+import { extname, normalize, resolve, sep } from "node:path";
+import { pipeline } from "node:stream/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { loadAppConfig } from "./lib/config.mjs";
 import { createStateStore } from "./lib/state-store.mjs";
+import { escapeHtml, parseJsonBody, RequestError } from "./lib/http.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = resolve(__filename, "..");
@@ -679,7 +680,11 @@ function parseCookies(req) {
   return raw.split(";").map((chunk) => chunk.trim()).filter(Boolean).reduce((acc, chunk) => {
     const idx = chunk.indexOf("=");
     if (idx === -1) return acc;
-    acc[chunk.slice(0, idx)] = decodeURIComponent(chunk.slice(idx + 1));
+    try {
+      acc[chunk.slice(0, idx)] = decodeURIComponent(chunk.slice(idx + 1));
+    } catch {
+      // An unrelated malformed cookie must not break session endpoints.
+    }
     return acc;
   }, {});
 }
@@ -841,20 +846,6 @@ function sendMethodNotAllowed(res) {
   res.end("Method not allowed");
 }
 
-async function parseBody(req) {
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(chunk);
-  }
-  if (chunks.length === 0) return {};
-  const raw = Buffer.concat(chunks).toString("utf8");
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-}
-
 function renderMockAuthPage(sessionId) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -875,7 +866,7 @@ function renderMockAuthPage(sessionId) {
     <h1>Connect TractorCloud</h1>
     <p>This is the local demo sign-in for Farmer Agent. Click once and the opener will receive a live session cookie.</p>
     <button id="approve">Approve Commune Access</button>
-    <div class="sub">Session: ${sessionId}</div>
+    <div class="sub">Session: ${escapeHtml(sessionId)}</div>
   </div>
   <script>
     document.getElementById('approve').addEventListener('click', async function() {
@@ -883,7 +874,7 @@ function renderMockAuthPage(sessionId) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ sessionId: ${JSON.stringify(sessionId)} })
+        body: JSON.stringify({ sessionId: ${JSON.stringify(sessionId).replace(/</g, "\\u003c")} })
       });
       if (window.opener) {
         window.close();
@@ -905,7 +896,7 @@ function formatCloudSummary(agents) {
   };
 }
 
-async function handleApi(req, res, url) {
+async function handleApi(req, res, url, body) {
   const state = await readState();
   const { pathname, searchParams } = url;
 
@@ -943,7 +934,6 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "POST" && pathname === "/api/eliza-cloud/hosted/complete") {
-    const body = await parseBody(req);
     const sessionId = body.sessionId;
     if (!sessionId || !state.authFlows[sessionId]) {
       return sendJson(res, 404, { error: "Auth flow not found" });
@@ -968,7 +958,7 @@ async function handleApi(req, res, url) {
       200,
       { ok: true, authenticated: true },
       {
-        "Set-Cookie": `farmer_session=${encodeURIComponent(appSessionId)}; Path=/; Max-Age=86400; SameSite=Lax`
+        "Set-Cookie": `farmer_session=${encodeURIComponent(appSessionId)}; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax`
       }
     );
   }
@@ -1016,7 +1006,6 @@ async function handleApi(req, res, url) {
     const id = pathname.split("/")[4];
     const agent = state.cloud.agents.find((item) => item.id === id);
     if (!agent) return sendJson(res, 404, { error: "Agent not found" });
-    const body = await parseBody(req);
     const action = body.action;
     const nextStatus = {
       start: "running",
@@ -1063,7 +1052,6 @@ async function handleApi(req, res, url) {
     if (!getAuthenticatedSession(req, state)) {
       return sendJson(res, 401, { error: "Authentication required" });
     }
-    const body = await parseBody(req);
     state.cloud.autoTopup = {
       ...state.cloud.autoTopup,
       ...body
@@ -1131,7 +1119,6 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "POST" && pathname === "/api/airdrop/claim") {
-    const body = await parseBody(req);
     const wallet = body.wallet;
     const recipient = findRecipient(state, wallet);
     if (!recipient) {
@@ -1178,7 +1165,6 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "POST" && pathname === "/api/goo/agents/spawn") {
-    const body = await parseBody(req);
     const spawned = {
       id: `goo-spawn-${state.meta.nextGooSpawn++}`,
       symbol: `NEW${state.meta.nextGooSpawn}`,
@@ -1208,6 +1194,8 @@ async function handleApi(req, res, url) {
     const id = pathname.split("/")[4];
     const agent = state.gooAgents.find((item) => item.id === id);
     if (!agent) return sendJson(res, 404, { error: "Agent not found" });
+    if (agent.acquired) return sendJson(res, 409, { error: "Agent already acquired" });
+    if (agent.status === "active") return sendJson(res, 409, { error: "Active agents cannot be acquired" });
     agent.acquired = true;
     agent.status = "dead";
     const totalAbsorbed = state.absorptions.length + 1;
@@ -1245,31 +1233,54 @@ async function handleApi(req, res, url) {
 
 async function serveStatic(req, res, url) {
   const routePath = prettyRoutes[url.pathname] || url.pathname;
-  let target = normalize(decodeURIComponent(routePath));
+  let target;
+  try {
+    target = normalize(decodeURIComponent(routePath));
+  } catch {
+    throw new RequestError(400, "Invalid URL encoding");
+  }
+  if (target.includes("\0")) throw new RequestError(400, "Invalid URL path");
   if (target === "/" || target === ".") {
     target = "/index.html";
   }
   const fullPath = resolve(publicRoot, `.${target}`);
-  if (!fullPath.startsWith(publicRoot)) {
+  if (!fullPath.startsWith(`${publicRoot}${sep}`)) {
     return sendNotFound(res);
   }
 
+  let file;
   try {
-    await access(fullPath);
+    file = await open(fullPath);
+    if (!(await file.stat()).isFile()) return sendNotFound(res);
     const contentType = mimeTypes[extname(fullPath)] || "application/octet-stream";
     res.writeHead(200, { "Content-Type": contentType });
     if (req.method === "HEAD") {
       res.end();
       return;
     }
-    createReadStream(fullPath).pipe(res);
-  } catch {
-    sendNotFound(res);
+    await pipeline(file.createReadStream({ autoClose: false }), res);
+  } catch (error) {
+    if (res.headersSent) {
+      res.destroy();
+    } else if (["ENOENT", "ENOTDIR", "EACCES"].includes(error.code)) {
+      sendNotFound(res);
+    } else {
+      throw error;
+    }
+  } finally {
+    await file?.close();
   }
 }
 
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+let pendingMutation = Promise.resolve();
+
+async function routeRequest(req, res) {
+  let url;
+  try {
+    url = new URL(req.url || "/", "http://localhost");
+  } catch {
+    throw new RequestError(400, "Invalid request URL");
+  }
 
   if ((url.pathname === "/auth/mock-cloud" || url.pathname === "/auth/eliza-cloud") && req.method === "GET") {
     const sessionId = url.searchParams.get("session") || "manual-local-session";
@@ -1277,19 +1288,33 @@ const server = createServer(async (req, res) => {
   }
 
   if (url.pathname.startsWith("/api/")) {
-    try {
-      return await handleApi(req, res, url);
-    } catch (error) {
-      console.error(error);
-      return sendJson(res, 500, { error: "Internal server error" });
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
+      // Parse before entering the queue so slow uploads do not hold state locks.
+      const body = await parseJsonBody(req);
+      const result = pendingMutation.then(() => handleApi(req, res, url, body));
+      // Serialize the complete read/modify/write operation in this app process.
+      pendingMutation = result.catch(() => {});
+      return await result;
     }
+    return await handleApi(req, res, url, {});
   }
 
   if (!["GET", "HEAD"].includes(req.method || "GET")) {
     return sendMethodNotAllowed(res);
   }
 
-  return serveStatic(req, res, url);
+  return await serveStatic(req, res, url);
+}
+
+const server = createServer((req, res) => {
+  routeRequest(req, res).catch((error) => {
+    if (res.headersSent || res.destroyed) return res.destroy();
+    if (error instanceof RequestError) {
+      return sendJson(res, error.statusCode, { error: error.message });
+    }
+    console.error(error);
+    return sendJson(res, 500, { error: "Internal server error" });
+  });
 });
 
 server.listen(port, host, () => {

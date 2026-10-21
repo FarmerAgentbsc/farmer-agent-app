@@ -109,6 +109,12 @@
       });
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character];
+    });
+  }
+
   function displayName(agent) {
     return isZh ? (zhNames[agent.id] || agent.name) : agent.name;
   }
@@ -196,10 +202,10 @@
           '<div class="goo-agent-row__dot goo-dot--' + agent.status + '"></div>' +
           '<div class="goo-agent-row__main">' +
           '<div class="goo-agent-row__title">' +
-          '<span class="goo-agent-row__symbol">$' + agent.symbol + "</span>" +
-          '<span class="goo-agent-row__name">' + displayName(agent) + "</span>" +
+          '<span class="goo-agent-row__symbol">$' + escapeHtml(agent.symbol) + "</span>" +
+          '<span class="goo-agent-row__name">' + escapeHtml(displayName(agent)) + "</span>" +
           '<span class="goo-badge goo-badge--' + agent.status + '">' + copy.status[agent.status] + "</span>" +
-          '<span class="goo-badge goo-badge--strategy">' + displayStrategy(agent) + "</span>" +
+          '<span class="goo-badge goo-badge--strategy">' + escapeHtml(displayStrategy(agent)) + "</span>" +
           (agent.acquired ? '<span class="goo-badge goo-badge--acquired">' + copy.filters.acquired + "</span>" : "") +
           "</div>" +
           '<div class="goo-agent-row__meta">' +

@@ -1,4 +1,5 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { dirname } from "node:path";
 import pg from "pg";
 
@@ -118,7 +119,17 @@ class StateStore {
 
   async writeSnapshotToDisk(state) {
     await mkdir(dirname(this.stateFile), { recursive: true });
-    await writeFile(this.stateFile, JSON.stringify(this.hydrateState(state), null, 2), "utf8");
+    const temporaryFile = `${this.stateFile}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(temporaryFile, JSON.stringify(this.hydrateState(state), null, 2), {
+        encoding: "utf8",
+        mode: 0o600,
+        flag: "wx"
+      });
+      await rename(temporaryFile, this.stateFile);
+    } finally {
+      await rm(temporaryFile, { force: true });
+    }
   }
 
   async readState() {
