@@ -1,10 +1,12 @@
 {
   "name": "farmer-agent-app",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "start": "node server/index.mjs",
-    "dev": "node --watch server/index.mjs"
+    "dev": "node --watch server/index.mjs",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=20"
